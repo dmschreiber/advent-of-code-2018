@@ -26,7 +26,8 @@ pub fn solve(file_name : String) -> i64 {
   let mut history = vec![];
   let mut total = 0;
   for l in &lines {
-    let num = common::get_number_between_text(l.to_string());
+    let num = l.parse::<i64>().unwrap();
+
     total += num;
     history.push(total);
   }

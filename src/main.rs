@@ -1,5 +1,6 @@
 pub mod common;
 pub mod puzzle1;
+pub mod puzzle2;
 
 use tokio_stream::StreamExt;
 use tokio::task;
@@ -13,10 +14,9 @@ extern crate tokio;
 #[tokio::main]
 async fn run()  {
 
-    let targets = vec![
-        (puzzle1::solve,"./inputs/puzzle1.txt".to_string()),
-        (puzzle1::solve,"./inputs/puzzle1.txt".to_string()),
-        (puzzle1::solve,"./inputs/puzzle1.txt".to_string())
+    let targets : Vec<(fn(std::string::String) -> i64,String)> = vec![
+        (puzzle1::solve,"./inputs/puzzle1.txt".to_string()), // 53 mins
+        (puzzle2::solve,"./inputs/puzzle2.txt".to_string()),
         ];
     let mut stream = tokio_stream::iter(targets);
 

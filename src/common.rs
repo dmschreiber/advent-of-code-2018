@@ -45,7 +45,7 @@ pub fn read_input(filename: String) -> Vec<String> {
 ////////
 // RegEx
 lazy_static! {
-  static ref NUMBER_REGEX: Regex = Regex::new(r"^(.*)([\-\+][0-9*+]+)(.*)$").unwrap();
+  static ref NUMBER_REGEX: Regex = Regex::new(r"^(.*) ([0-9+]+)(.*)$").unwrap();
 }
 
 // gets a number on a line with stuff before & after
