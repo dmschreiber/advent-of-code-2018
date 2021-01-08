@@ -16,7 +16,7 @@ async fn run()  {
 
     let targets : Vec<(fn(std::string::String) -> i64,String)> = vec![
         (puzzle1::solve,"./inputs/puzzle1.txt".to_string()), // 53 mins
-        (puzzle2::solve,"./inputs/puzzle2.txt".to_string()),
+        (puzzle2::solve,"./inputs/puzzle2.txt".to_string()), //24 mins
         ];
     let mut stream = tokio_stream::iter(targets);
 
