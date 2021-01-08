@@ -1,5 +1,7 @@
 use std::fs;
 use std::collections::HashMap;
+use regex::Regex;
+
 
 #[cfg(test)]
 mod tests {
@@ -9,6 +11,7 @@ mod tests {
     println!("{}",super::format_binary_len(10, 8));
     assert!(super::format_binary_len(10,8)=="00001010");
     assert!(super::parse_binary(&"1010".to_string(), '1', '0')==10);
+    assert!(super::get_number_between_text("some 10 thing".to_string())==10);
   }
 }
 
@@ -22,6 +25,23 @@ pub fn read_input(filename: String) -> Vec<String> {
   lines
 }
 
+////////
+// RegEx
+lazy_static! {
+  static ref NUMBER_REGEX: Regex = Regex::new(r"^(.*) ([0-9*+]+)(.*)$").unwrap();
+}
+
+// gets a number on a line with stuff before & after
+pub fn get_number_between_text(expression : String) -> i64 {
+
+  if let Some(inner) = NUMBER_REGEX.captures(&expression) {
+    let r = inner[2].to_string();
+    println!("{}", r);
+    let n = r.parse::<i64>();
+    return n.unwrap();
+  }
+  panic!("not a number");
+}
 //////// Map Functions 
 // 
 
@@ -40,7 +60,7 @@ pub fn get_max_row(map : HashMap<(isize,isize),char> ) -> isize {
   return map.keys().map(|(r,_c)| *r).max().unwrap();
 }
 
-pub fn make_map(lines : Vec<String>) -> HashMap<(isize,isize),char> {
+pub fn make_map(lines : &Vec<String>) -> HashMap<(isize,isize),char> {
   let mut map = HashMap::new();
 
   for (row,line) in lines.iter().enumerate() {

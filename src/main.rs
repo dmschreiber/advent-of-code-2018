@@ -1,5 +1,8 @@
 pub mod common;
+pub mod puzzle1;
+
+#[macro_use] extern crate lazy_static;
 
 fn main() {
-    println!("Hello, world!");
+    println!("{}", puzzle1::solve());
 }
