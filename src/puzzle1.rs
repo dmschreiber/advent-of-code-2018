@@ -22,11 +22,31 @@ use std::thread;
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
   println!("Start solve");
-  thread::sleep(Duration::from_secs(10));
 
-  let map = common::make_map(&lines);
-  let spot = common::get_spot_on_map(&map, 0, 0, '.');
-  assert!(spot == '.');
-  
-  return 0.try_into().unwrap();
+  let mut history = vec![];
+  let mut total = 0;
+  for l in &lines {
+    let num = common::get_number_between_text(l.to_string());
+    total += num;
+    history.push(total);
+  }
+  println!("total = {}", total);
+  let mut new_history = vec![];
+
+  for n1 in &history {
+    for n2 in &history {
+      if n1 != n2 {
+        if (n2-n1).abs() % total == 0 {
+          if n1 > &total { new_history.push((n1,(n2-n1).abs()/total)); }
+          if n2 > &total { new_history.push((n2, (n2-n1).abs()/total)); }
+        }
+      }
+    }
+  }
+  let m = new_history.iter().map(|(a,b)| b).min().unwrap();
+  println!("try n={}, first repeated is {:?}", m, new_history.iter().filter(|(a,b)| b==m).map(|(a,b)| **a).collect::<Vec<i64>>()[0]);
+
+  println!("{}", total);
+
+  return total.try_into().unwrap();
 }

@@ -37,7 +37,7 @@ pub fn read_input(filename: String) -> Vec<String> {
   let contents = fs::read_to_string(filename)
   .expect("Something went wrong reading the file");
 
-  let lines: Vec<String> = contents.split("\n\n").map(|s| (&*s).to_string() ).collect();
+  let lines: Vec<String> = contents.split("\n").map(|s| (&*s).to_string() ).collect();
 
   lines
 }
@@ -45,7 +45,7 @@ pub fn read_input(filename: String) -> Vec<String> {
 ////////
 // RegEx
 lazy_static! {
-  static ref NUMBER_REGEX: Regex = Regex::new(r"^(.*) ([0-9*+]+)(.*)$").unwrap();
+  static ref NUMBER_REGEX: Regex = Regex::new(r"^(.*)([\-\+][0-9*+]+)(.*)$").unwrap();
 }
 
 // gets a number on a line with stuff before & after
@@ -53,7 +53,7 @@ pub fn get_number_between_text(expression : String) -> i64 {
 
   if let Some(inner) = NUMBER_REGEX.captures(&expression) {
     let r = inner[2].to_string();
-    println!("{}", r);
+    // println!("regex result {}", r);
     let n = r.parse::<i64>();
     return n.unwrap();
   }
