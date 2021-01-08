@@ -1,6 +1,7 @@
 use std::fs;
 use std::collections::HashMap;
 use regex::Regex;
+use std::convert::TryInto;
 
 
 #[cfg(test)]
@@ -12,6 +13,22 @@ mod tests {
     assert!(super::format_binary_len(10,8)=="00001010");
     assert!(super::parse_binary(&"1010".to_string(), '1', '0')==10);
     assert!(super::get_number_between_text("some 10 thing".to_string())==10);
+
+    let map = super::make_map(&vec!["#.".to_string(), 
+                                    "#.".to_string()
+                                    ]);
+    assert!(super::get_spot_on_map(&map, 0, 1, '*')=='.');
+    assert!(super::get_spot_on_map(&map, 0, 0, '*')=='#');
+    assert!(super::get_spot_on_map(&map, 3, 0, '*')=='*');
+
+    assert!(super::get_max_row(&map)==1);
+
+    assert!(super::get_neighbors((0,0))==vec![(-1,0),(1,0),(0,-1),(0,1)]);
+
+    assert!(super::get_spot_on_map(&map, 1, 0, '.')=='#');
+    println!("{}", super::count_neighbors(&map, (0,0), '#'));
+    assert!(super::count_neighbors(&map, (0,0), '#')==1);
+    assert!(super::count_neighbors(&map, (0,0), '.')==1);
   }
 }
 
@@ -44,6 +61,26 @@ pub fn get_number_between_text(expression : String) -> i64 {
 }
 //////// Map Functions 
 // 
+pub fn count_neighbors(map : &HashMap<(isize,isize),char>, point : (isize,isize), value : char) -> isize {
+  let mut not_default = '.';
+  if value == not_default { not_default = (not_default as u8 + 1).try_into().unwrap(); }
+
+  let mut count = 0;
+  for n in get_neighbors(point) {
+    if get_spot_on_map(&map, n.0, n.1, not_default) == value {
+      count = count + 1;
+    }
+  }
+  return count;
+}
+
+pub fn get_neighbors(point : (isize,isize)) -> Vec<(isize,isize)> {
+  let mut ret_val = vec![];
+  for n in vec![(-1,0),(1,0),(0,-1),(0,1)] {
+    ret_val.push((point.0+n.0,point.1+n.1));
+  }
+  return ret_val;
+}
 
 pub fn get_spot_on_map(map : &HashMap<(isize,isize),char>, row : isize, col : isize, default : char) -> char {
     if let Some(b) = map.get( &( row, col ) ) {
@@ -52,11 +89,11 @@ pub fn get_spot_on_map(map : &HashMap<(isize,isize),char>, row : isize, col : is
       return default;
     }
 }
-pub fn get_min_row(map : HashMap<(isize,isize),char> ) -> isize {
+pub fn get_min_row(map : &HashMap<(isize,isize),char> ) -> isize {
   return map.keys().map(|(r,_c)| *r).min().unwrap();
 }
 
-pub fn get_max_row(map : HashMap<(isize,isize),char> ) -> isize {
+pub fn get_max_row(map : &HashMap<(isize,isize),char> ) -> isize {
   return map.keys().map(|(r,_c)| *r).max().unwrap();
 }
 
