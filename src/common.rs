@@ -59,6 +59,7 @@ pub fn get_number_between_text(expression : String) -> i64 {
   }
   panic!("not a number");
 }
+
 //////// Map Functions 
 // 
 pub fn count_neighbors(map : &HashMap<(isize,isize),char>, point : (isize,isize), value : char) -> isize {
