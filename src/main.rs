@@ -13,12 +13,13 @@ use tokio_stream::StreamExt;
 extern crate tokio;
 
 #[tokio::main]
-async fn run()  {
+async fn main() {
+
 
     let targets : Vec<(fn(std::string::String) -> i64,String)> = vec![
         (puzzle1::solve,"./inputs/puzzle1.txt".to_string()), // 53 mins
         (puzzle2::solve,"./inputs/puzzle2.txt".to_string()), //24 mins
-        (puzzle3::solve,"./inputs/puzzle3.txt".to_string()), //24 mins
+        (puzzle3::solve,"./inputs/puzzle3.txt".to_string()), // 33 mins
         ];
     let mut stream = tokio_stream::iter(targets);
 
@@ -27,9 +28,4 @@ async fn run()  {
 
     }
 
-}
-
-fn main() {
-
-    run();
 }

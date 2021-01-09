@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-  use crate::common;
   #[test]
   pub fn puzzle2_test() {
     assert!((0,0)==super::check_id("abcdef".to_string()));
