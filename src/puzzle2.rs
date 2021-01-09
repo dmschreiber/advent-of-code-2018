@@ -19,9 +19,6 @@ mod tests {
 }
 
 use crate::common;
-use std::convert::TryInto;
-use std::time::Duration;
-use std::thread;
 
 pub fn check_id(id : String) -> (i64,i64) {
   let mut has_two = 0;
@@ -60,7 +57,7 @@ pub fn solve(file_name : String) -> i64 {
   println!("Start solve");
   
   let v = lines.iter().map(|l| check_id(l.to_string())).collect::<Vec<(i64,i64)>>();
-  let retval = v.iter().map(|(a,b)| *a).sum::<i64>() * v.iter().map(|(a,b)| b).sum::<i64>();
+  let retval = v.iter().map(|(a,_b)| *a).sum::<i64>() * v.iter().map(|(_a,b)| b).sum::<i64>();
   println!("{} checksum", retval);
 
   for l1 in &lines {

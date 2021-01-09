@@ -16,8 +16,6 @@ mod tests {
 
 use crate::common;
 use std::convert::TryInto;
-use std::time::Duration;
-use std::thread;
 
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
@@ -44,8 +42,8 @@ pub fn solve(file_name : String) -> i64 {
       }
     }
   }
-  let m = new_history.iter().map(|(a,b)| b).min().unwrap();
-  println!("try n={}, first repeated is {:?}", m, new_history.iter().filter(|(a,b)| b==m).map(|(a,b)| **a).collect::<Vec<i64>>()[0]);
+  let m = new_history.iter().map(|(_a,b)| b).min().unwrap();
+  println!("try n={}, first repeated is {:?}", m, new_history.iter().filter(|(_a,b)| b==m).map(|(a,_b)| **a).collect::<Vec<i64>>()[0]);
 
   println!("{}", total);
 
