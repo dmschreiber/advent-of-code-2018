@@ -3,9 +3,9 @@ mod tests {
   use crate::common;
   #[test]
   pub fn puzzle4_test() {
-    use regex::Regex;
+    // use regex::Regex;
     // assert!(common::format_binary(10)=="1010");
-    super::solve("./inputs/puzzle4-test.txt".to_string());
+    assert!(4455==super::solve("./inputs/puzzle4-test.txt".to_string()));
     if let Some(inner) = super::GUARD_REGEX.captures("[1518-11-01 00:00] Guard #10 begins shift") {
       assert!(inner[1] == *"1518");
       assert!(inner[2] == *"11");
@@ -36,7 +36,7 @@ mod tests {
   #[test]
   pub fn puzzle4_prod() {
     assert!(common::format_binary(10)=="1010");
-    super::solve("./inputs/puzzle4.txt".to_string());
+    assert!( 56901==super::solve("./inputs/puzzle4.txt".to_string()));
   }
 }
 
@@ -127,7 +127,7 @@ pub fn solve(file_name : String) -> i64 {
       which_guard = r.id;
     }
   }
-  println!("also guard_id {}", which_guard);
+
   let guard_id = which_guard;
 
   let mut time_map = HashMap::new();
@@ -147,7 +147,7 @@ pub fn solve(file_name : String) -> i64 {
 
   let minute = time_map.keys().filter(|k| time_map.get(k).unwrap() == time_map.values().max().unwrap()).map(|k| *k).collect::<Vec<u64>>()[0];
 
-  println!("part 1 Guard id {} adn minutse {} answer {}", guard_id, minute, guard_id as u64 * minute);
+  println!("part 1 Guard id {} and minutes {} answer {}", guard_id, minute, guard_id as u64 * minute);
 
 
   let mut all_time_map = HashMap::new();
@@ -166,5 +166,5 @@ pub fn solve(file_name : String) -> i64 {
   let guard_minute = all_time_map.keys().filter(|k| all_time_map.get(k).unwrap() == all_time_map.values().max().unwrap()).map(|k| *k).collect::<Vec<(u32,u64)>>()[0];
 
   println!("part 2 guard {}, minute {}, answer {}", guard_minute.0, guard_minute.1, guard_minute.0 as u64*guard_minute.1);
-  return (guard_id as u64 * minute).try_into().unwrap();
+  return (guard_minute.0 as u64*guard_minute.1).try_into().unwrap();
 }
