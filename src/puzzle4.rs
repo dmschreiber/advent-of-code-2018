@@ -106,7 +106,6 @@ pub fn solve(file_name : String) -> i64 {
   let mut start_sleep : u64 = 0;
   let mut duration;
 
-  let mut  g_v = HashMap::new();
   let mut range_rec = vec![];
 
   for r in records  {
@@ -115,17 +114,21 @@ pub fn solve(file_name : String) -> i64 {
       Action::Sleep => { start_sleep = r.timestamp.parse::<u64>().unwrap(); }
       Action::Wake => { 
         duration = r.timestamp.parse::<u64>().unwrap() - start_sleep; 
-        if let Some(i) = g_v.get_mut(&last_id) {
-          *i += duration; 
-        } else {
-          g_v.insert(last_id,duration);
-        }
         range_rec.push( RangeRec{ id : last_id, start : start_sleep, end : r.timestamp.parse::<u64>().unwrap(), duration : duration });
       }
     }
   }
 
-  let guard_id = g_v.keys().filter(|k| g_v.get(k).unwrap() == g_v.values().max().unwrap()).map(|k| *k).collect::<Vec<u32>>()[0];
+  let mut biggest = 0;
+  let mut which_guard = 0;
+  for r in &range_rec {
+    if range_rec.iter().filter(|i| i.id == r.id).map(|i| i.duration).sum::<u64>() > biggest {
+      biggest = range_rec.iter().filter(|i| i.id == r.id).map(|i| i.duration).sum::<u64>();
+      which_guard = r.id;
+    }
+  }
+  println!("also guard_id {}", which_guard);
+  let guard_id = which_guard;
 
   let mut time_map = HashMap::new();
   for r in &range_rec {
