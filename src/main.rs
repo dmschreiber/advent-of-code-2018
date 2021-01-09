@@ -22,7 +22,7 @@ async fn main() {
         (puzzle1::solve,"./inputs/puzzle1.txt".to_string()), // 53 mins
         (puzzle2::solve,"./inputs/puzzle2.txt".to_string()), //24 mins
         (puzzle3::solve,"./inputs/puzzle3.txt".to_string()), // 33 mins
-        (puzzle4::solve,"./inputs/puzzle4.txt".to_string()), // try tags
+        (puzzle4::solve,"./inputs/puzzle4.txt".to_string()), // try tags (57 mins)
         ];
     let mut stream = tokio_stream::iter(targets);
 

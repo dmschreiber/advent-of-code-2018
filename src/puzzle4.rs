@@ -104,7 +104,7 @@ pub fn solve(file_name : String) -> i64 {
 
   let mut last_id = 0;
   let mut start_sleep : u64 = 0;
-  let mut duration = 0;
+  let mut duration;
 
   let mut  g_v = HashMap::new();
   let mut range_rec = vec![];
@@ -144,7 +144,7 @@ pub fn solve(file_name : String) -> i64 {
 
   let minute = time_map.keys().filter(|k| time_map.get(k).unwrap() == time_map.values().max().unwrap()).map(|k| *k).collect::<Vec<u64>>()[0];
 
-  println!("Guard id {} adn minutse {} answer {}", guard_id, minute, guard_id as u64 * minute);
+  println!("part 1 Guard id {} adn minutse {} answer {}", guard_id, minute, guard_id as u64 * minute);
 
 
   let mut all_time_map = HashMap::new();
@@ -163,5 +163,5 @@ pub fn solve(file_name : String) -> i64 {
   let guard_minute = all_time_map.keys().filter(|k| all_time_map.get(k).unwrap() == all_time_map.values().max().unwrap()).map(|k| *k).collect::<Vec<(u32,u64)>>()[0];
 
   println!("part 2 guard {}, minute {}, answer {}", guard_minute.0, guard_minute.1, guard_minute.0 as u64*guard_minute.1);
-  return 0.try_into().unwrap();
+  return (guard_id as u64 * minute).try_into().unwrap();
 }
