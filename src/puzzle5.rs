@@ -5,6 +5,9 @@ mod tests {
   pub fn puzzle5_test() {
     assert!(super::calculate(&"aA".to_string())==0);
     assert!(super::calculate(&"dabAcCaCBAcCcaDA".to_string())==10);
+    assert!(super::calculate(&super::remove(&"dabAcCaCBAcCcaDA".to_string(),'a'))==6);
+    println!("test {}", super::solve("./inputs/puzzle5-test.txt".to_string()));
+
   }
 
   #[test]
@@ -16,6 +19,18 @@ mod tests {
 
 use crate::common;
 use std::convert::TryInto;
+
+pub fn remove(s : &String, c : char) -> String {
+  let mut ret_val = vec![];
+
+  for current in s.as_bytes() {
+    if *current as char != c && *current != (b'A' + (c as u8 - b'a')) {
+      ret_val.push(current);
+    }
+  }
+  // println!("{}", ret_val.iter().map(|b| **b as char).collect::<String>());
+  return ret_val.iter().map(|b| **b as char).collect::<String>();
+}
 
 pub fn calculate(s : &String) -> u64 {
 
@@ -39,7 +54,7 @@ pub fn calculate(s : &String) -> u64 {
           if *c_next == (*c - b'a') + b'A' {
             // println!("match {} {} {}", *c as char, *c_next as char, ((*c - b'a') + b'A') as char);
             skip_next = true;
-            if i == current_chars.len()-3 {
+            if current_chars.len() >= 3 && i == current_chars.len()-3 {
               remaining_chars.push(current_chars[current_chars.len()-1]);
             }
           } else {
@@ -55,7 +70,7 @@ pub fn calculate(s : &String) -> u64 {
           if *c_next == (c - b'A') + b'a' {
             // println!("match {} {}", *c as char, *c_next as char);
             skip_next = true;
-            if i == current_chars.len()-3 {
+            if current_chars.len() >= 3 && i == current_chars.len()-3 {
               remaining_chars.push(current_chars[current_chars.len()-1]);
             }
 
@@ -77,7 +92,7 @@ pub fn calculate(s : &String) -> u64 {
       }
     }
     // println!("Remaining chars {:?} - current chars {:?}", remaining_chars.iter().map(|c| *c as char).collect::<String>(), current_chars.iter().map(|c| *c as char).collect::<String>());
-    println!("Iteration count {} {} to  {}", iteration_count, current_chars.len(), remaining_chars.len());
+    // println!("Iteration count {} {} to  {}", iteration_count, current_chars.len(), remaining_chars.len());
     did_work = current_chars.len() != remaining_chars.len();
     current_chars = remaining_chars.clone();
   }
@@ -89,6 +104,10 @@ pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
   println!("Start solve {}", &lines[0][&lines[0].len()-5..]);
 
+  let mut v = vec![];
+  for c in 'a'..='z' {
+    v.push((c,calculate(&remove(&lines[0],c))));
+  }
+  println!("minimum is {:?}", v.iter().min_by_key(|(a,b)| *b));
   return calculate(&lines[0]) as i64;  
-  // 11240 too low
 }
