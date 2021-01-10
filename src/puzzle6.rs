@@ -70,7 +70,7 @@ pub fn solve(file_name : String) -> i64 {
       }
 
       if coordinates.iter().filter(|new_p| **new_p != map.get(&(x,y)).unwrap().0 && manhattan_distance(**new_p, (x,y)) == map.get(&(x,y)).unwrap().1).count() > 0 {
-        println!("Found equidistant {:?}", coordinates.iter().filter(|new_p| **new_p != map.get(&(x,y)).unwrap().0 && manhattan_distance(**new_p, (x,y)) == map.get(&(x,y)).unwrap().1).map(|p| *p).collect::<Vec<(isize,isize)>>());
+        // println!("Found equidistant {:?}", coordinates.iter().filter(|new_p| **new_p != map.get(&(x,y)).unwrap().0 && manhattan_distance(**new_p, (x,y)) == map.get(&(x,y)).unwrap().1).map(|p| *p).collect::<Vec<(isize,isize)>>());
         map.remove(&(x,y));
       }  
       
@@ -80,15 +80,35 @@ pub fn solve(file_name : String) -> i64 {
 
   let mut biggest = 0;
   let mut which = (0,0);
-  for c in coordinates {
-    let area = map.values().filter(|(p,d)| *p == c).count();
+  for c in &coordinates {
+    let area = map.values().filter(|(p,d)| *p == *c).count();
     if area > biggest {
       biggest = area;
-      which = c;
+      which = *c;
     }
   }
+
+  let threshold_size = 10000;
+  let mut region_size = 0;
+
+  for x in min_x-10..=max_x+10 {
+    for y in min_y-10..=max_y+10 {
+      let mut total_distance = 0;
+      for p in &coordinates {
+        let d = manhattan_distance(*p, (x,y));
+        total_distance = total_distance + d;
+
+      }
+      if total_distance < threshold_size {
+        region_size = region_size + 1;
+      }
+    }
+  }
+
   println!("biggest is {:?} size {}", which, biggest);
+  println!("Region size with threshold {} is {}", threshold_size, region_size);
   return biggest.try_into().unwrap();
-  // 3973 too high
+
+  // part 2 - 36238
 
 }
