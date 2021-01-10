@@ -20,6 +20,11 @@ use std::convert::TryInto;
 use regex::Regex;
 use std::collections::HashMap;
 
+
+// Problems
+// - removing the spots that were equistant
+// - detecting the *minimum* equidistant not just equidisstant
+
 lazy_static! {
   static ref COORDINATES_REGEX: Regex = Regex::new(r"^([0-9+]+), ([0-9+]+)$").unwrap();
 }
@@ -48,17 +53,23 @@ pub fn solve(file_name : String) -> i64 {
     coordinates.push(get_coordinates(l));
   }
 
-  let min_x = coordinates.iter().map(|(x,y)| *x).min().unwrap();
-  let max_x = coordinates.iter().map(|(x,y)| *x).max().unwrap();
-  let min_y = coordinates.iter().map(|(x,y)| *y).min().unwrap();
-  let max_y = coordinates.iter().map(|(x,y)| *y).max().unwrap();
+  let min_x = coordinates.iter().map(|(x,_y)| *x).min().unwrap();
+  let max_x = coordinates.iter().map(|(x,_y)| *x).max().unwrap();
+  let min_y = coordinates.iter().map(|(_x,y)| *y).min().unwrap();
+  let max_y = coordinates.iter().map(|(_x,y)| *y).max().unwrap();
 
   let mut map : HashMap<(isize,isize),((isize,isize),isize)> = HashMap::new();
 
+  let threshold_size = 10000;
+  let mut region_size = 0;
+
   for x in min_x..=max_x {
     for y in min_y..=max_y {
+      let mut total_distance = 0;
       for p in &coordinates {
         let d = manhattan_distance(*p, (x,y));
+        total_distance = total_distance + d;
+
         if let Some(place) = map.get_mut(&(x,y)) {
           if d < place.1 {
             place.0 = *p;
@@ -69,8 +80,11 @@ pub fn solve(file_name : String) -> i64 {
         }
       }
 
+      if total_distance < threshold_size {
+        region_size = region_size + 1;
+      }
+
       if coordinates.iter().filter(|new_p| **new_p != map.get(&(x,y)).unwrap().0 && manhattan_distance(**new_p, (x,y)) == map.get(&(x,y)).unwrap().1).count() > 0 {
-        // println!("Found equidistant {:?}", coordinates.iter().filter(|new_p| **new_p != map.get(&(x,y)).unwrap().0 && manhattan_distance(**new_p, (x,y)) == map.get(&(x,y)).unwrap().1).map(|p| *p).collect::<Vec<(isize,isize)>>());
         map.remove(&(x,y));
       }  
       
@@ -81,27 +95,10 @@ pub fn solve(file_name : String) -> i64 {
   let mut biggest = 0;
   let mut which = (0,0);
   for c in &coordinates {
-    let area = map.values().filter(|(p,d)| *p == *c).count();
+    let area = map.values().filter(|(p,_d)| *p == *c).count();
     if area > biggest {
       biggest = area;
       which = *c;
-    }
-  }
-
-  let threshold_size = 10000;
-  let mut region_size = 0;
-
-  for x in min_x-10..=max_x+10 {
-    for y in min_y-10..=max_y+10 {
-      let mut total_distance = 0;
-      for p in &coordinates {
-        let d = manhattan_distance(*p, (x,y));
-        total_distance = total_distance + d;
-
-      }
-      if total_distance < threshold_size {
-        region_size = region_size + 1;
-      }
     }
   }
 
