@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-  use crate::common;
   #[test]
   pub fn puzzle5_test() {
     assert!(super::calculate(&"aA".to_string())==0);
@@ -18,7 +17,6 @@ mod tests {
 }
 
 use crate::common;
-use std::convert::TryInto;
 
 // Problems in solving
 // didn't clear my remaining_chars vector between iteration
@@ -38,14 +36,13 @@ pub fn remove(s : &String, c : char) -> String {
 
 pub fn calculate(s : &String) -> u64 {
 
-  let mut retval = 0;
-  let mut skip_next = false;
+  let mut skip_next;
   let mut current_chars = s.as_bytes().to_vec();
   let mut did_work = true;
   let mut iteration_count = 0;
 
   while did_work {
-    iteration_count += 1;
+    iteration_count = iteration_count + 1;
     let mut remaining_chars = vec![];
     skip_next = false;
     if current_chars.len() == 0 { break; }
@@ -92,6 +89,6 @@ pub fn solve(file_name : String) -> i64 {
   for c in 'a'..='z' {
     v.push((c,calculate(&remove(&lines[0],c))));
   }
-  println!("minimum is {:?}", v.iter().min_by_key(|(a,b)| *b));
+  println!("minimum is {:?}", v.iter().min_by_key(|(_a,b)| *b));
   return calculate(&lines[0]) as i64;  
 }

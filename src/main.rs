@@ -4,6 +4,7 @@ pub mod puzzle2;
 pub mod puzzle3;
 pub mod puzzle4;
 pub mod puzzle5;
+pub mod puzzle6;
 
 use tokio_stream::StreamExt;
 use std::time::Instant;
@@ -25,6 +26,7 @@ async fn main() {
         (puzzle3::solve,"./inputs/puzzle3.txt".to_string()), // 33 mins
         (puzzle4::solve,"./inputs/puzzle4.txt".to_string()), // try tags (57 mins)
         (puzzle5::solve,"./inputs/puzzle5.txt".to_string()), // 75 mins
+        (puzzle5::solve,"./inputs/puzzle6.txt".to_string()), // 
         ];
     let mut stream = tokio_stream::iter(targets);
 
