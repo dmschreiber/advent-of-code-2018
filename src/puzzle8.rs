@@ -24,6 +24,10 @@ mod tests {
 
 use crate::common;
 
+// part 1 was moving through the list of numbers rather than looping through the number
+//   of segments
+// part 2 wasn't calling the part 2 method; entered the same value as from part 1
+
 fn sum_value(nums : Vec<u32>) -> (usize,i64) {
   if nums.len() == 0 {
     // println!("Zero len array");
@@ -36,8 +40,6 @@ fn sum_value(nums : Vec<u32>) -> (usize,i64) {
     if nums.len() <= nums[1] as usize { panic!("length vs metadat {}, {}", nums.len(), nums[1]); }
     let end = nums.len() - nums[1] as usize;
     
-    // println!("Calling starting with offset {} end {} - {:?}", offset, end, nums);
-    // while offset < end {
     let mut nodes = vec![0; nums[0] as usize];
     for i in 0..nums[0] {
         // println!("Calling sum_metadata {} {} - running total {} {:?}", offset, end, intermediate_total, nums);      
@@ -45,18 +47,16 @@ fn sum_value(nums : Vec<u32>) -> (usize,i64) {
         nodes[i as usize] = contributing_total;
 
         offset  = offset+consumed_offset;
-        // println!("Node {} is {} ({} consumed) {}", i+1, contributing_total, consumed_offset, end);      
 
     }
     let mut intermediate_total = 0;
-    // println!("Composing value from {:?}",nums[offset..offset+nums[1] as usize].to_vec());
+
     for i in nums[offset..offset+nums[1] as usize].to_vec() {
       if let Some(result) = nodes.get((i-1) as usize) {
         intermediate_total = intermediate_total + result;
       }
     }
     return (offset + nums[1] as usize,intermediate_total);
-    // 49602 is too high - 25656
   }
 }
 
