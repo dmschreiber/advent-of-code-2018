@@ -3,6 +3,12 @@ if [ $# -ne 1 ]; then
   echo "expected puzzle number argument"
   exit -1
 fi
+
+if [[ -f src/puzzle$1.rs ]]; then
+  echo "target puzzle file exists"
+  exit -1
+fi
+
 touch inputs/puzzle$1.txt
 touch inputs/puzzle$1-test.txt
 cat src/puzzle-template.rs | sed 's/puzzle1/puzzle'$1'/g' > src/puzzle$1.rs
