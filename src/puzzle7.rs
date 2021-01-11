@@ -6,14 +6,14 @@ mod tests {
     assert!(common::format_binary(10)=="1010");
     assert!(super::get_steps("Step C must be finished before step A can begin.".to_string())==('C','A'));
     assert!("CABDFE".to_string()==super::find_order("./inputs/puzzle7-test.txt".to_string()));
-    // super::solve("./inputs/puzzle7-test.txt".to_string());
+    println!("part 2 result {}", super::solve("./inputs/puzzle7-test.txt".to_string()));
   }
 
   #[test]
   pub fn puzzle7_prod() {
     assert!(common::format_binary(10)=="1010");
     println!("part 1 result {}", super::find_order("./inputs/puzzle7.txt".to_string()));
-    // super::solve("./inputs/puzzle7.txt".to_string());
+    println!("part 2 result {}", super::solve("./inputs/puzzle7.txt".to_string()));
   }
 }
 
@@ -47,10 +47,7 @@ pub fn get_prerequ(c : char, steps : &HashMap<char,Vec<char>>) -> Vec<char> {
   return v;
 }
 
-pub fn find_order(file_name : String) -> String {
-  let mut ret_val = "".to_string();
-  let lines = common::read_input(file_name);
-
+fn load_all_steps(lines : Vec<String>) -> HashMap<char,Vec<char>> {
   let mut list : HashMap<char,Vec<char>> = HashMap::new();
   for l in &lines {
     
@@ -62,27 +59,15 @@ pub fn find_order(file_name : String) -> String {
     }
   }
 
-  let mut available_chars = vec![];
+  return list;
+}
+pub fn find_order(file_name : String) -> String {
+  let mut ret_val = "".to_string();
+  let lines = common::read_input(file_name);
 
-  let mut start_char = '0';
-  for (i,c) in list.keys().enumerate() {
-    let mut found = false;
-    for (j,other) in list.values().enumerate() {
-      if i != j {
-        if other.contains(c) {
-          found = true;
-          break;
-        }
-      }
-    }
-    if !found {
-      println!("no prerequs {}", *c);
-      available_chars.push(*c);
-      start_char = *c;
-    }
-  }
+  let mut list = load_all_steps(lines);
 
-  println!("start char {} - {:?}", start_char, available_chars);
+  let mut available_chars = list.keys().filter(|c| get_prerequ(**c, &list).len() == 0).map(|c| *c).collect::<Vec<char>>();
 
   let mut resulting_order : Vec<char>= vec![];
 
@@ -92,14 +77,14 @@ pub fn find_order(file_name : String) -> String {
     let mut char_index = 0;
     let mut next_char = available_chars[char_index];
     while get_prerequ(next_char, &list).iter().filter(|target_char| !resulting_order.contains(target_char)).count() > 0 {
-      println!("Prerequ of {} are {:?}", next_char, get_prerequ(next_char, &list));
+      // println!("Prerequ of {} are {:?}", next_char, get_prerequ(next_char, &list));
       char_index += 1;
       next_char = available_chars[char_index].clone();
     }
     available_chars.remove(char_index);
 
     resulting_order.push(next_char);
-    let mut subsequent;
+    let subsequent;
     if let Some(thing) = list.get_mut(&next_char) {
       subsequent = thing.clone();
     } else {
@@ -122,12 +107,55 @@ pub fn find_order(file_name : String) -> String {
 }
 
 pub fn solve(file_name : String) -> i64 {
-  let lines = common::read_input(file_name);
-  println!("Start solve");
+  let mut current_minute = 0;
 
-  let map = common::make_map(&lines);
-  let spot = common::get_spot_on_map(&map, 0, 0, '.');
-  assert!(spot == '.');
-  
-  return 0.try_into().unwrap();
+  let lines = common::read_input(file_name.to_string());
+  let order = find_order(file_name.to_string());
+  let mut steps_remain : Vec<char> = order.as_bytes().iter().map(|c| *c as char).collect();
+  let steps_map = load_all_steps(lines);
+
+
+  let num_workers = 5;
+  let initial_time = 60;
+
+  let mut workers : Vec<Option<u32>> = vec![None; num_workers];
+  let mut work : Vec<char> = vec!['0'; num_workers];
+
+  while steps_remain.len() > 0 || work.iter().filter(|c| **c != '0').count() > 0 {
+    println!("second {}", current_minute);
+
+    for position in 0..workers.len() {
+      if let Some(w) = workers.get_mut(position).unwrap() {
+        // decrement
+        *w = *w - 1;
+      } else if steps_remain.len() > 0 {
+        let mut char_index = 0;
+        while get_prerequ(steps_remain[char_index] as char, &steps_map).iter().filter(|pre_char| steps_remain.contains(&(**pre_char)) || work.contains(pre_char)).count() > 0 {
+          char_index = char_index + 1;
+          if char_index == steps_remain.len() { break; }
+        }
+        if char_index < steps_remain.len() {
+          println!("assign work {}", steps_remain[char_index]);
+          *workers.get_mut(position).unwrap() = Some(( initial_time + steps_remain[char_index] as u8 - b'A' ) as u32);
+          work[position] = steps_remain[char_index];
+          steps_remain.remove(char_index);
+          // assign work
+        }
+      }
+    }
+
+    for position in 0..workers.len() {
+       let p = workers.get_mut(position).unwrap();
+       if Some(0) == *p {
+         *p = None;
+         work[position] = '0';
+       }
+    }
+    current_minute = current_minute + 1;
+  }
+ 
+  // 1007 too low
+  // 1070 too high
+
+  return current_minute.try_into().unwrap();
 }
