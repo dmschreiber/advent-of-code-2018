@@ -6,14 +6,14 @@ mod tests {
     assert!(common::format_binary(10)=="1010");
     assert!(super::get_steps("Step C must be finished before step A can begin.".to_string())==('C','A'));
     assert!("CABDFE".to_string()==super::find_order("./inputs/puzzle7-test.txt".to_string()));
-    println!("part 2 result {}", super::solve("./inputs/puzzle7-test.txt".to_string()));
+    assert!(15== super::solve_part2("./inputs/puzzle7-test.txt".to_string(),2,0));
   }
 
   #[test]
   pub fn puzzle7_prod() {
     assert!(common::format_binary(10)=="1010");
-    println!("part 1 result {}", super::find_order("./inputs/puzzle7.txt".to_string()));
-    println!("part 2 result {}", super::solve("./inputs/puzzle7.txt".to_string()));
+    assert!("EFHLMTKQBWAPGIVXSZJRDUYONC".to_string()==super::find_order("./inputs/puzzle7.txt".to_string()));
+    assert!(1056==super::solve("./inputs/puzzle7.txt".to_string()));
   }
 }
 
@@ -62,7 +62,7 @@ fn load_all_steps(lines : Vec<String>) -> HashMap<char,Vec<char>> {
   return list;
 }
 pub fn find_order(file_name : String) -> String {
-  let mut ret_val = "".to_string();
+  let ret_val;
   let lines = common::read_input(file_name);
 
   let mut list = load_all_steps(lines);
@@ -99,14 +99,14 @@ pub fn find_order(file_name : String) -> String {
     available_chars.sort();
     available_chars.dedup();
 
-    println!("{:?} -> {:?}", available_chars, resulting_order);
+    // println!("{:?} -> {:?}", available_chars, resulting_order);
   }
 
   ret_val = resulting_order.iter().map(|my_char| *my_char).collect::<String>();
   return ret_val;
 }
 
-pub fn solve(file_name : String) -> i64 {
+fn solve_part2(file_name : String, num_workers : usize, initial_time : u8) -> i64 {
   let mut current_minute = 0;
 
   let lines = common::read_input(file_name.to_string());
@@ -115,14 +115,11 @@ pub fn solve(file_name : String) -> i64 {
   let steps_map = load_all_steps(lines);
 
 
-  let num_workers = 5;
-  let initial_time = 60;
-
   let mut workers : Vec<Option<u32>> = vec![None; num_workers];
   let mut work : Vec<char> = vec!['0'; num_workers];
 
   while steps_remain.len() > 0 || work.iter().filter(|c| **c != '0').count() > 0 {
-    println!("second {}", current_minute);
+    // println!("second {}", current_minute);
 
     for position in 0..workers.len() {
       if let Some(w) = workers.get_mut(position).unwrap() {
@@ -135,7 +132,6 @@ pub fn solve(file_name : String) -> i64 {
           if char_index == steps_remain.len() { break; }
         }
         if char_index < steps_remain.len() {
-          println!("assign work {}", steps_remain[char_index]);
           *workers.get_mut(position).unwrap() = Some(( initial_time + steps_remain[char_index] as u8 - b'A' ) as u32);
           work[position] = steps_remain[char_index];
           steps_remain.remove(char_index);
@@ -158,4 +154,7 @@ pub fn solve(file_name : String) -> i64 {
   // 1070 too high
 
   return current_minute.try_into().unwrap();
+}
+pub fn solve(file_name : String) -> i64 {
+  solve_part2(file_name, 5, 60)
 }
