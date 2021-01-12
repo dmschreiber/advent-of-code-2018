@@ -22,6 +22,9 @@ use std::convert::TryInto;
 use regex::Regex;
 use std::collections::HashMap;
 
+// Realizing that going from 70k to 7m marbles would be too slow; should have known right away
+// things in a circle is a pattern, referring to relative positions => linked list & structures
+
 #[derive(Debug)]
 pub struct Marble {
   num : u32,
