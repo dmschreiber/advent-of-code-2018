@@ -22,6 +22,13 @@ use std::convert::TryInto;
 use regex::Regex;
 use std::collections::HashMap;
 
+#[derive(Debug)]
+pub struct Marble {
+  num : u32,
+  clockwise : u32,
+  counter_clockwise : u32,
+}
+
 lazy_static! {
   static ref NUMBERS_REGEX: Regex = Regex::new(r"^([0-9+]+) players; last marble is worth ([0-9+]+) points$").unwrap();
 }
@@ -35,52 +42,152 @@ pub fn get_number_between_text(expression : String) -> (u32,u32) {
   panic!("not a number");
 }
 
+fn get_marble_clockwise(map : &HashMap<u32,Marble>, which_marble : u32, offset : u32) -> u32 {
+  let m = map.get(&which_marble).unwrap();
 
-pub fn solve(input : String) -> i64 {
+  let mut current = m;
+  for i in 0..offset {
+    current = map.get(&current.clockwise).unwrap();
+  }
+  return current.num;
+}
 
-  let (players,last_marble) = get_number_between_text(input);
+fn get_marble_counter_clockwise(map : &HashMap<u32,Marble>, which_marble : u32, offset : u32) -> u32 {
+  let m = map.get(&which_marble).unwrap();
+
+  let mut current = m;
+  for i in 0..offset {
+    current = map.get(&current.counter_clockwise).unwrap();
+  }
+  return current.num;
+}
+
+fn put_marble_after(map : &mut HashMap<u32,Marble>, to_put : u32, after : u32) {
+  let target = map.get_mut(&after).unwrap();
+  let next = target.clockwise;
+  target.clockwise = to_put;
+
+  let next_target = map.get_mut(&next).unwrap();
+  next_target.counter_clockwise = to_put;
+
+  let m = Marble{ num : to_put, clockwise : next, counter_clockwise : after };
+  map.insert(to_put,m);
+
+}
+
+fn remove_marble(map : &mut HashMap<u32,Marble>, which : u32) -> u32 {
+  let target = map.get(&which).unwrap().clone();
+  let next_marble = target.clockwise;
+  let prev_marble = target.counter_clockwise;
+
+  let mut prev = map.get_mut(&prev_marble).unwrap();
+  prev.clockwise = next_marble;
+  let mut next = map.get_mut(&next_marble).unwrap();
+  next.counter_clockwise = prev_marble;
+
+  map.remove(&which);
+  return next_marble;
+}
+fn print_map(map : &HashMap<u32,Marble>, current_marble : u32) {
+  let mut index = 0;
+  let mut target = map.get(&index).unwrap();
+  // print!("{}", index);
+
+  loop {
+    if target.num == current_marble {
+      print!("({})", target.num);
+    } else {
+      print!("{}", target.num);
+    }
+    index = target.clockwise;
+    let prev = target.num;
+
+    if target.clockwise == 0 { break; }
+    print!(",");
+    target = map.get(&index).unwrap();
+    if target.counter_clockwise != prev { panic!("{} has previous {} v counter {}", target.num, prev, target.counter_clockwise); }
+  }
+  println!();
+
+}
+
+pub fn get_high_score(players : u32, last_marble : u32) -> i64 {
   let high_score;
   
   let mut current_player = 1;
+  let mut current_marble_index = 1;
   let mut current_marble = 1;
   let mut scores = HashMap::new();
 
-  let mut marbles = vec![0,1];
+  let mut marbles : Vec<u32> = Vec::with_capacity(last_marble.try_into().unwrap());
+  let mut marble_map : HashMap<u32,Marble> = HashMap::new();
+
+  marble_map.insert(0,Marble{ num: 0, clockwise : 1, counter_clockwise: 1});
+  marble_map.insert(1,Marble{ num: 1, clockwise : 0, counter_clockwise: 0});
+  print_map(&marble_map, 1);
+  // marbles = vec![0,1];
   for m in 2..=last_marble {
     if m % 23 == 0 {
+      if scores.get(&current_player) == None {
+        scores.insert(current_player,0);
+      }
+
       if let Some(score) = scores.get_mut(&current_player) {
-        let additional_index = (current_marble - 7) % marbles.len();
+        // let additional_index = (current_marble_index - 7) % marbles.len();
         *score = *score + m;
-        println!("Removing {} which is {}", additional_index, marbles.get(additional_index).unwrap());
+        // println!("Removing {} which is {}", additional_index, marbles.get(additional_index).unwrap());
         // println!("before {:?}", marbles);
-        let additional_m = marbles.get(additional_index).unwrap().clone();
+        let additional_m  = get_marble_counter_clockwise(&marble_map, current_marble, 7);
+
+        current_marble = remove_marble(&mut marble_map, additional_m);
+        // let additional_m = marbles.get(additional_index).unwrap().clone();
         *score = *score + additional_m;
-        marbles.remove(additional_index);
-        current_marble = additional_index;
+        // marbles.remove(additional_index);
+        // current_marble_index = additional_index;
         // println!("after {:?}", marbles);
       } else {
-        let additional_index = (current_marble - 7) % marbles.len();
-        println!("Removing {} which is {}", additional_index, marbles.get(additional_index).unwrap());
-        // println!("before {:?}", marbles);
-        let additional_m = marbles.get(additional_index).unwrap().clone();
-        marbles.remove(additional_index);
-        scores.insert(current_player,m+additional_m);
-        current_marble = additional_index;
-        // println!("after {:?}", marbles);
+        panic!("shouldn't get here");
+        // let additional_index = (current_marble_index - 7) % marbles.len();
+        // // println!("Removing {} which is {}", additional_index, marbles.get(additional_index).unwrap());
+        // // println!("before {:?}", marbles);
+        // let additional_m = marbles.get(additional_index).unwrap().clone();
+        // marbles.remove(additional_index);
+        // scores.insert(current_player,m+additional_m);
+        // current_marble_index = additional_index;
+        // // println!("after {:?}", marbles);
       }
     } else {
-      let pre_size = marbles.len();
-      let new_index = (current_marble+2) % pre_size;
-      // println!("pre_size {}, new_index {}", pre_size, new_index);
-      marbles.insert(new_index,m);
-      current_marble = new_index;
+      let target = get_marble_clockwise(&marble_map, current_marble, 1);
+      put_marble_after(&mut marble_map,m,target);
+      current_marble = m;
+      // let pre_size = marbles.len();
+      // let new_index = (current_marble_index+2) % pre_size;
+      // // println!("pre_size {}, new_index {}", pre_size, new_index);
+      // marbles.insert(new_index,m);
+      // current_marble_index = new_index;
   
     }
-    // println!("[{}] ({}) {:?}", current_player+1, marbles[current_marble], marbles);
+    // print_map(&marble_map, current_marble);
+    // println!("[{}] ({}) {:?}", current_player+1, marbles[current_marble_index], marbles);
     current_player = (current_player + 1) % players;
+    if m % 100000 == 0 { println!("PRogress {} of {} - {:?}", m, last_marble, *scores.values().max().unwrap()); }
   }
 
-  println!("{:?}", scores);
   high_score = *scores.values().max().unwrap();
-  return high_score.try_into().unwrap();
+  println!("{:?}", high_score);
+  return high_score.try_into().unwrap();  
+}
+pub fn solve(input : String) -> i64 {
+
+  let (players,last_marble) = get_number_between_text(input);
+  let part1 = get_high_score(players, last_marble);
+  println!("Part 1 {}", part1);
+
+  let part2 = get_high_score(players, 100*last_marble);
+  println!("Part 2 {}", part2);
+  // too high 3,353,002,507
+  //          3,352,920,421
+
+  return part1;
+
 }
