@@ -13,11 +13,11 @@ mod tests {
   #[test]
   pub fn puzzle9_prod() {
     assert!(common::format_binary(10)=="1010");
-    println!("Day 9 part 2 {}", super::solve("428 players; last marble is worth 70825 points".to_string()));
+    assert!(398502 == super::get_high_score(428, 70825));
+    assert!(3352920421 == super::get_high_score(428, 100*70825));
   }
 }
 
-use crate::common;
 use std::convert::TryInto;
 use regex::Regex;
 use std::collections::HashMap;
@@ -46,7 +46,7 @@ fn get_marble_clockwise(map : &HashMap<u32,Marble>, which_marble : u32, offset :
   let m = map.get(&which_marble).unwrap();
 
   let mut current = m;
-  for i in 0..offset {
+  for _i in 0..offset {
     current = map.get(&current.clockwise).unwrap();
   }
   return current.num;
@@ -56,7 +56,7 @@ fn get_marble_counter_clockwise(map : &HashMap<u32,Marble>, which_marble : u32, 
   let m = map.get(&which_marble).unwrap();
 
   let mut current = m;
-  for i in 0..offset {
+  for _i in 0..offset {
     current = map.get(&current.counter_clockwise).unwrap();
   }
   return current.num;
@@ -88,6 +88,8 @@ fn remove_marble(map : &mut HashMap<u32,Marble>, which : u32) -> u32 {
   map.remove(&which);
   return next_marble;
 }
+
+#[allow(dead_code)]
 fn print_map(map : &HashMap<u32,Marble>, current_marble : u32) {
   let mut index = 0;
   let mut target = map.get(&index).unwrap();
@@ -115,16 +117,14 @@ pub fn get_high_score(players : u32, last_marble : u32) -> i64 {
   let high_score;
   
   let mut current_player = 1;
-  let mut current_marble_index = 1;
   let mut current_marble = 1;
   let mut scores = HashMap::new();
 
-  let mut marbles : Vec<u32> = Vec::with_capacity(last_marble.try_into().unwrap());
   let mut marble_map : HashMap<u32,Marble> = HashMap::new();
 
   marble_map.insert(0,Marble{ num: 0, clockwise : 1, counter_clockwise: 1});
   marble_map.insert(1,Marble{ num: 1, clockwise : 0, counter_clockwise: 0});
-  print_map(&marble_map, 1);
+
   // marbles = vec![0,1];
   for m in 2..=last_marble {
     if m % 23 == 0 {
@@ -133,44 +133,21 @@ pub fn get_high_score(players : u32, last_marble : u32) -> i64 {
       }
 
       if let Some(score) = scores.get_mut(&current_player) {
-        // let additional_index = (current_marble_index - 7) % marbles.len();
-        *score = *score + m;
-        // println!("Removing {} which is {}", additional_index, marbles.get(additional_index).unwrap());
-        // println!("before {:?}", marbles);
         let additional_m  = get_marble_counter_clockwise(&marble_map, current_marble, 7);
-
         current_marble = remove_marble(&mut marble_map, additional_m);
-        // let additional_m = marbles.get(additional_index).unwrap().clone();
-        *score = *score + additional_m;
-        // marbles.remove(additional_index);
-        // current_marble_index = additional_index;
-        // println!("after {:?}", marbles);
-      } else {
-        panic!("shouldn't get here");
-        // let additional_index = (current_marble_index - 7) % marbles.len();
-        // // println!("Removing {} which is {}", additional_index, marbles.get(additional_index).unwrap());
-        // // println!("before {:?}", marbles);
-        // let additional_m = marbles.get(additional_index).unwrap().clone();
-        // marbles.remove(additional_index);
-        // scores.insert(current_player,m+additional_m);
-        // current_marble_index = additional_index;
-        // // println!("after {:?}", marbles);
-      }
+
+        *score = *score + m + additional_m;
+      } 
     } else {
       let target = get_marble_clockwise(&marble_map, current_marble, 1);
       put_marble_after(&mut marble_map,m,target);
       current_marble = m;
-      // let pre_size = marbles.len();
-      // let new_index = (current_marble_index+2) % pre_size;
-      // // println!("pre_size {}, new_index {}", pre_size, new_index);
-      // marbles.insert(new_index,m);
-      // current_marble_index = new_index;
   
     }
     // print_map(&marble_map, current_marble);
     // println!("[{}] ({}) {:?}", current_player+1, marbles[current_marble_index], marbles);
     current_player = (current_player + 1) % players;
-    if m % 100000 == 0 { println!("PRogress {} of {} - {:?}", m, last_marble, *scores.values().max().unwrap()); }
+    // if m % 100000 == 0 { println!("PRogress {} of {} - {:?}", m, last_marble, *scores.values().max().unwrap()); }
   }
 
   high_score = *scores.values().max().unwrap();
@@ -185,7 +162,7 @@ pub fn solve(input : String) -> i64 {
 
   let part2 = get_high_score(players, 100*last_marble);
   println!("Part 2 {}", part2);
-  // too high 3,353,002,507
+  // 
   //          3,352,920,421
 
   return part1;
