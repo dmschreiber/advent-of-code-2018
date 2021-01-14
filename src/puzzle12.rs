@@ -13,6 +13,8 @@ mod tests {
   pub fn puzzle12_prod() {
     assert!(common::format_binary(10)=="1010");
     super::solve("./inputs/puzzle12.txt".to_string());
+    super::solve_part2(500);
+    super::solve_part2(50000000000u64);
   }
 }
 
@@ -55,6 +57,17 @@ fn match_mapping(map : &HashMap<isize,char>, mapping : &(String,char), which_pot
   return true;
 }
 
+pub fn solve_part2(n : u64) {
+
+  let mut sum = 0u64;
+  for i in 0..34 {
+    sum = sum + (n-70) + i*5;
+    sum = sum + (n-70)+1+ i*5;
+    sum = sum + (n-70)+2 + i*5;
+  }
+  println!("Sum is {}", sum);
+}
+
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
 
@@ -71,18 +84,19 @@ pub fn solve(file_name : String) -> i64 {
   }
   println!("{:?}", mappings);
   let mut new_pot_map;
+  let mut history = vec![];
 
-  for i in 0..20 {
+  for i in 0..500 {
     new_pot_map = HashMap::new();
     for pot_number in *pot_map.keys().min().unwrap()-2..=*pot_map.keys().max().unwrap()+2 {
       for mapping in &mappings {
         if match_mapping(&pot_map, mapping, pot_number) {
-          println!("pot {} matched result is {} ({})", pot_number, mapping.1, mapping.0);
+          // println!("pot {} matched result is {} ({})", pot_number, mapping.1, mapping.0);
           new_pot_map.insert(pot_number,mapping.1);
         } 
       }
       if new_pot_map.get(&pot_number) == None {
-        println!("pot {} no match so .", pot_number);
+        // println!("pot {} no match so .", pot_number);
         new_pot_map.insert(pot_number,'.');
       }      
     }
@@ -91,7 +105,15 @@ pub fn solve(file_name : String) -> i64 {
 
     let mut pots : Vec<isize>= pot_map.keys().map(|k| *k).collect();
     pots.sort();
-    println!("{}", pots.iter().map(|k| pot_map.get(&k).unwrap()).collect::<String>());
+    let first_plant_pot = pots.iter().position(|k| *pot_map.get(&k).unwrap() == '#').unwrap();
+    let last_plant_pot = pots.iter().rev().position(|k| *pot_map.get(&k).unwrap() == '#').unwrap();
+    let pattern = format!("{}", pots[first_plant_pot..pots.len()-last_plant_pot].iter().map(|k| pot_map.get(&k).unwrap()).collect::<String>());
+    if history.contains(&pattern) {
+      println!("REPEAT at {}", i);
+      println!("pattern ({},{}) len {} {}",pots[first_plant_pot], pots[last_plant_pot], pattern.len(), pattern);
+    } else {
+      history.push(pattern.clone());
+    }
   }
 
   let sum = pot_map.keys().filter(|k| *pot_map.get(&k).unwrap() == '#').map(|k| *k).sum::<isize>();
