@@ -47,7 +47,7 @@ fn detect_pattern(world : &HashMap<(i64,i64),Vec<Particle>>) -> bool {
 
   for each_point in world.keys() {
     if world.keys().filter(|(my_x,my_y)| *my_x == each_point.0 && (my_y - each_point.1).abs() <= 3).count() >= 7 {
-      println!("vert detect {:?}", each_point);
+      // println!("vert detect {:?}", each_point);
       vert = true;
     }
     // if each_point.0 == 7 && each_point.1 == 0 {
@@ -55,7 +55,7 @@ fn detect_pattern(world : &HashMap<(i64,i64),Vec<Particle>>) -> bool {
     // }
 
     if world.keys().filter(|(my_x,my_y)| *my_y == each_point.1 && (my_x - each_point.0).abs() <= 1).count() >= 3 {
-      println!("horiz detect {:?}", each_point);
+      // println!("horiz detect {:?}", each_point);
       horiz = true;
     }
   }

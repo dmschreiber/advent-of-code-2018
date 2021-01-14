@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
   use crate::common;
-  use std::convert::TryInto;
 
   #[test]
   pub fn puzzle11_test() {
@@ -11,7 +10,6 @@ mod tests {
     assert!(0==super::calculate_power(217,196,39));
     assert!(super::solve("18".to_string())==29);
 
-    println!("calculate 9 - {} vs {}", super::calculate_power_grid(1, 1, 18, 9),     super::experimental_power_grid(1,1,18,9)  );
     assert!(super::solve_part2("18".to_string())==113);
   }
 
@@ -25,8 +23,6 @@ mod tests {
 
 use std::convert::TryInto;
 use std::collections::HashMap;
-use cached::proc_macro::cached;
-use cached::SizedCache;
 
 fn calculate_power (x : i64, y : i64, serial_number : i64) -> i64 {
   let rack_id = x + 10;
@@ -38,34 +34,6 @@ fn calculate_power (x : i64, y : i64, serial_number : i64) -> i64 {
   return power;
 }
 
-fn factor(num: i32) -> Vec<i32> {
-  let mut factors: Vec<i32> = Vec::new(); // creates a new vector for the factors of the number
-
-  for i in 1..((num as f32).sqrt() as i32 + 1) { 
-      if num % i == 0 {
-          factors.push(i); // pushes smallest factor to factors
-          factors.push(num/i); // pushes largest factor to factors
-      }
-  }
-  factors.sort(); // sorts the factors into numerical order for viewing purposes
-  factors // returns the factors
-}
-
-// #[cached(
-//   type = "SizedCache<i64, i64>",
-//   create = "{ SizedCache::with_size(100000) }",
-//   convert = r#"{ x*1000000000+y*1000000+size*1000+serial_number*1000000000000 }"#
-// )]
-fn experimental_power_grid(x : i64, y : i64, serial_number : i64, size : i64 ) -> i64 {
-  // println!("Trying {},{} - {}", x, y, size);
-  let f = factor(size.try_into().unwrap());
-  if f.len() == 2 { return calculate_power_grid(x, y, serial_number,size); }
-  else {
-    let f1 = f[1];
-
-    return (0..size).step_by(f1.try_into().unwrap()).map(|i| (0..size).step_by(f1.try_into().unwrap()).fold(0, |acc,j| acc + experimental_power_grid(x+i,y+j,serial_number,f1.try_into().unwrap()))).sum::<i64>();
-  }
-}
 
 fn calculate_power_grid(x : i64, y : i64, serial_number : i64, size : i64 ) -> i64 {
     let power =     (0..size).map(|i| (0..size).fold(0, |acc,j| acc + calculate_power(x+i,y+j,serial_number))).sum::<i64>();
