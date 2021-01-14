@@ -72,7 +72,7 @@ fn print_world (world : &HashMap<(i64,i64),Vec<Particle>>) {
   let mut count = 0;
   for y in min_y..=max_y {
     for x in min_x-2..=max_x+2 {
-      if let Some(p) = world.get(&(x,y)) {
+      if let Some(_p) = world.get(&(x,y)) {
         print!("#");
         count = count + 1;
       } else {
