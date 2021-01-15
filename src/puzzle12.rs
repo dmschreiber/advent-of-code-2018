@@ -13,8 +13,6 @@ mod tests {
   pub fn puzzle12_prod() {
     assert!(common::format_binary(10)=="1010");
     super::solve("./inputs/puzzle12.txt".to_string());
-    super::solve_part2(500);
-    super::solve_part2(50000000000u64);
   }
 }
 
@@ -57,15 +55,15 @@ fn match_mapping(map : &HashMap<isize,char>, mapping : &(String,char), which_pot
   return true;
 }
 
-pub fn solve_part2(n : u64) {
-
-  let mut sum = 0u64;
-  for i in 0..34 {
-    sum = sum + (n-70) + i*5;
-    sum = sum + (n-70)+1+ i*5;
-    sum = sum + (n-70)+2 + i*5;
+fn decode_pattern(pattern : &String, n : i64, offset : i64) -> i64 {
+  let mut sum = 0i64;
+  println!("offset {}", offset);
+  for (i,c) in pattern.as_bytes().iter().enumerate() {
+    if *c == b'#' {
+      sum = sum + (n +offset) + i as i64;
+    }
   }
-  println!("Sum is {}", sum);
+  return sum;
 }
 
 pub fn solve(file_name : String) -> i64 {
@@ -82,9 +80,12 @@ pub fn solve(file_name : String) -> i64 {
     let map = get_mapping(&l);
     mappings.push(map);
   }
-  println!("{:?}", mappings);
+  // println!("{:?}", mappings);
   let mut new_pot_map;
   let mut history = vec![];
+
+  let mut offset = 0;
+  let mut part1_answer = 0;
 
   for i in 0..500 {
     new_pot_map = HashMap::new();
@@ -108,15 +109,22 @@ pub fn solve(file_name : String) -> i64 {
     let first_plant_pot = pots.iter().position(|k| *pot_map.get(&k).unwrap() == '#').unwrap();
     let last_plant_pot = pots.iter().rev().position(|k| *pot_map.get(&k).unwrap() == '#').unwrap();
     let pattern = format!("{}", pots[first_plant_pot..pots.len()-last_plant_pot].iter().map(|k| pot_map.get(&k).unwrap()).collect::<String>());
+    if i == 19 {
+      part1_answer = pot_map.keys().filter(|k| *pot_map.get(&k).unwrap() == '#').map(|k| *k).sum::<isize>();
+    }
     if history.contains(&pattern) {
-      println!("REPEAT at {}", i);
-      println!("pattern ({},{}) len {} {}",pots[first_plant_pot], pots[last_plant_pot], pattern.len(), pattern);
+      // println!("REPEAT at {}", i);
+      // println!("pattern ({},{}) len {} {}",pots[first_plant_pot], pots[pots.len()-last_plant_pot], pattern.len(), pattern);
+      offset = pots[first_plant_pot] as i64 - i -1;
+
     } else {
       history.push(pattern.clone());
     }
   }
 
-  let sum = pot_map.keys().filter(|k| *pot_map.get(&k).unwrap() == '#').map(|k| *k).sum::<isize>();
-  println!("sum is {}", sum);
-  return sum.try_into().unwrap();
+  let pattern = history.pop().unwrap();
+  println!("Part 2 sum at 50b = {}", decode_pattern(&pattern, 50000000000,offset));
+  // let sum = pot_map.keys().filter(|k| *pot_map.get(&k).unwrap() == '#').map(|k| *k).sum::<isize>();
+  println!("Part 1 sum is {}", part1_answer);
+  return part1_answer.try_into().unwrap();
 }
