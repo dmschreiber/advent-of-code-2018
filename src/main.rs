@@ -1,5 +1,6 @@
 pub mod common;
 pub mod puzzle1;
+pub mod puzzle15;
 pub mod puzzle14;
 pub mod puzzle13;
 pub mod puzzle12;
@@ -30,6 +31,7 @@ async fn main() {
 
     let targets : Vec<(fn(std::string::String) -> i64,String)> = vec![
         (puzzle1::solve,"./inputs/puzzle1.txt".to_string()),
+        (puzzle15::solve,"./inputs/puzzle15.txt".to_string()),
         (puzzle14::solve,"./inputs/puzzle14.txt".to_string()),
         (puzzle13::solve,"./inputs/puzzle13.txt".to_string()),
         (puzzle12::solve,"./inputs/puzzle12.txt".to_string()),

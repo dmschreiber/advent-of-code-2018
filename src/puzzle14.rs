@@ -27,7 +27,7 @@ pub struct Recipe {
   next_id : usize,
 }
 
-fn check_pattern_vec(rec_vec : &Vec<usize>, pattern : u64, digits : usize) -> bool {
+pub fn check_pattern_vec(rec_vec : &Vec<usize>, pattern : u64, digits : usize) -> bool {
   let max = rec_vec.len();
   if pattern == (0..digits).rev().fold(0, | acc,n| acc*10+rec_vec[max-n-1] as u64) {
     return true;
@@ -37,7 +37,7 @@ fn check_pattern_vec(rec_vec : &Vec<usize>, pattern : u64, digits : usize) -> bo
 }
 
 
-fn solve_part2(input : String) -> i64 {
+pub fn solve_part2(input : String) -> i64 {
   let pattern = input.parse::<u64>().unwrap();
   let digits = input.len();
   println!("seeking {}", pattern);
