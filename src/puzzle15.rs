@@ -1,18 +1,24 @@
 #[cfg(test)]
 mod tests {
   use crate::common;
+  use std::time::Instant;
   #[test]
   pub fn puzzle15_test() {
     assert!(common::format_binary(10)=="1010");
+    let start = Instant::now();
     assert!(18740==super::solve("./inputs/puzzle15-test.txt".to_string()));
     assert!(1140==super::solve_part2("./inputs/puzzle15-test.txt".to_string()));
+    println!("Complete in {:?}", start.elapsed());
   }
 
   #[test]
   pub fn puzzle15_prod() {
     assert!(common::format_binary(10)=="1010");
+    let start = Instant::now();
     assert!(250648==super::solve("./inputs/puzzle15.txt".to_string()));
+    println!("Part 1 complete in {:?}", start.elapsed());
     assert!(42224==super::solve_part2("./inputs/puzzle15.txt".to_string()));
+    println!("Part 2 complete in {:?}", start.elapsed());
   }
 }
 
@@ -65,7 +71,7 @@ fn path(map : &HashMap<(isize,isize),char>,
         point_b : (isize,isize), 
         history : &Vec<(isize,isize)>, 
         units : &Vec<Unit>, so_far : usize, max : usize,
-        cache : &mut HashMap<String,Option<usize>>) -> Option<usize> {
+        cache : &mut HashMap<String,Vec<(usize,Option<usize>)>>) -> Option<usize> {
   
   let mut candidates = vec![];
 
@@ -75,12 +81,14 @@ fn path(map : &HashMap<(isize,isize),char>,
   }
 
   if so_far >= max { return None; }
-  let key = format!("{},{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1,history.len());
   let mut distance;
+  let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
   if let Some(d) = cache.get(&key) {
-    distance = *d;
-    // println!("Got {:?} from key {}", distance, key);
-    return distance;
+    if d.iter().filter(|r| r.0 <= history.len()).count() > 0 {
+      distance = d.iter().filter(|r| r.0 <= history.len()).map(|r| r.1).filter(|r| *r != None).map(|r| r.unwrap()).min();
+      // println!("Got {:?} from key {}", distance, key);
+      return distance;
+    }
   }
 
   let neighbors = get_neighbors(map, units, &point_a);
@@ -100,14 +108,14 @@ fn path(map : &HashMap<(isize,isize),char>,
     }
   }
 
-  let key = format!("{},{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1,history.len());
+  let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
   let minimum_distance = candidates.iter().map(|d| *d).min();
   // println!("CANDIDATES {} - {:?} returning {:?}", key, candidates, minimum_distance);
   // println!("Put {:?} to key {}", minimum_distance, key);
   if let Some(c) = cache.get_mut(&key) {
-    *c = minimum_distance;
+    c.push((history.len(),minimum_distance));
   } else {
-    cache.insert(key,minimum_distance);
+    cache.insert(key,vec![(history.len(),minimum_distance)]);
   }
 
   return minimum_distance;
@@ -168,14 +176,18 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   let mut cache = HashMap::new();
 
   let mut candidates = vec![];
-  let clone_units = units.clone();
+  let mut clone_units = units.clone();
+  clone_units.sort_by_key(|my_unit| manhattan_distance(my_unit.position, u.position));
+  
   for target in clone_units.iter().filter(|my_unit| my_unit.hit_points > 0 && my_unit.position != u.position && my_unit.kind != u.kind) {
     // println!("Checking out {:?}", target);
     for my_n in get_neighbors(map, units, &u.position) {
 
       for n in get_neighbors(map, units, &target.position) {
         // println!("Calling path on {:?} {:?}", target.position, u.position);
-        if let Some(d) = path(map, my_n, n, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
+        if candidates.len() > 0 && manhattan_distance(n, my_n) > candidates.iter().map(|(d,_p1,_p2)| *d).min().unwrap() { 
+          // println!("for sure too far"); 
+        } else if let Some(d) = path(map, n, my_n, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
             // println!("found path {:?} to {:?}", u.position, n);
             candidates.push((d as isize,n,my_n));
         }
@@ -193,18 +205,19 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   for my_n in get_neighbors(map, units, &u.position) {
       if let Some(d) = path(map, my_n, top_candidate.1, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
         if top_candidate.0 == d.try_into().unwrap() {
-          println!("{:?} moves to {:?}", u, top_candidate);
-
-        //  if path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache) !=
-        //     path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache) {
-        //     println!("Compare {:?} to {:?} from {:?} to {:?}", 
-        //       path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache), 
-        //       path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache),
-        //       my_n,
-        //       top_candidate.1);
-        //     println!("{:?}", get_neighbors(map, units, &u.position));
-        //     panic!("reverse direction different length ({:?} to {:?})", my_n, top_candidate.1);
-        //   }
+          // println!("{:?} moves to {:?}", u, top_candidate);
+          
+        let d1 = path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache);
+        let d2 = path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache);
+        if d1 != d2 {
+            println!("Compare {:?} to {:?} from {:?} to {:?}", 
+              d1,
+              d2,
+              my_n,
+              top_candidate.1);
+            println!("{:?}", get_neighbors(map, units, &u.position));
+            panic!("reverse direction different length ({:?} to {:?})", my_n, top_candidate.1);
+          }
           target_spot = my_n;
           break;
         } 
@@ -275,9 +288,9 @@ fn dead_elves(units : &Vec<Unit>) -> usize {
 
 pub fn run_simulation(lines : &Vec<String>, candidate_power : i32) -> (UnitType, i32) {
   let (map, mut units) = load_grid(lines);
-  print_map(&map, &units);
+  // print_map(&map, &units);
   let mut rounds = 0;
-  let mut winner = UnitType::None;
+
   loop { // rounds
     units.sort_by_key(|k| k.position.0*1000+k.position.1);
     for i in 0..units.len() {
@@ -292,7 +305,7 @@ pub fn run_simulation(lines : &Vec<String>, candidate_power : i32) -> (UnitType,
 
         if dead_elves(&units) > 0 { 
           println!("One dead elf after {} rounds at power {}", rounds, candidate_power); 
-          winner = UnitType::Goblin; 
+
           return (UnitType::Goblin,rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
         }
         if units.iter().filter(|u| u.kind == UnitType::Goblin && u.hit_points > 0).count() == 0
@@ -302,17 +315,14 @@ pub fn run_simulation(lines : &Vec<String>, candidate_power : i32) -> (UnitType,
           println!("Elves win {} {} {}",units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points),  
               rounds, rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
           print_map(&map, &units);
-          winner = UnitType::Elf;
           return (UnitType::Elf,rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
         }  
       }
     }
 
-    if winner == UnitType::None {
-      rounds = rounds + 1;
-      // println!("After {} round winner {:?}", rounds, winner);
-      // print_map(&map, &units);
-    }
+    rounds = rounds + 1;
+    // println!("After {} round winner {:?}", rounds, winner);
+    // print_map(&map, &units);
   }
 }
 
