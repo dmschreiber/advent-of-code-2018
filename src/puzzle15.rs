@@ -5,12 +5,14 @@ mod tests {
   pub fn puzzle15_test() {
     assert!(common::format_binary(10)=="1010");
     assert!(18740==super::solve("./inputs/puzzle15-test.txt".to_string()));
+    assert!(34==super::solve_part2("./inputs/puzzle15-test.txt".to_string()));
   }
 
   #[test]
   pub fn puzzle15_prod() {
     assert!(common::format_binary(10)=="1010");
-    assert!(250648==super::solve("./inputs/puzzle15.txt".to_string()));
+    // assert!(250648==super::solve("./inputs/puzzle15.txt".to_string()));
+    super::solve_part2("./inputs/puzzle15.txt".to_string());
   }
 }
 
@@ -22,6 +24,7 @@ use std::collections::HashMap;
 pub enum UnitType {
   Goblin,
   Elf,
+  None,
 }
 
 #[derive(Debug,Clone)]
@@ -124,6 +127,7 @@ pub fn print_map_history(map : &HashMap<(isize,isize),char>, units : &Vec<Unit>,
           match any_units[0].kind {
             UnitType::Goblin => { print!("G"); }
             UnitType::Elf => { print!("E"); }
+            UnitType::None => { panic!("None in the units"); }
           }
         } else {
           print!("{}", p);
@@ -146,6 +150,7 @@ pub fn print_map(map : &HashMap<(isize,isize),char>, units : &Vec<Unit>) {
           match any_units[0].kind {
             UnitType::Goblin => { print!("G"); }
             UnitType::Elf => { print!("E"); }
+            UnitType::None => { panic!("None in the units"); }
           }
         } else {
           print!("{}", p);
@@ -264,10 +269,66 @@ pub fn load_grid(lines : &Vec<String>) -> (HashMap<(isize,isize),char>, Vec<Unit
   return (map,units);
 }
 
-pub fn solve_part2(file_name : String) -> i64 {
-  return 0;
+fn dead_elves(units : &Vec<Unit>) -> usize {
+  return units.iter().filter(|u| u.kind == UnitType::Elf && u.hit_points <= 0).count();
 }
 
+pub fn solve_part2(file_name : String) -> i32 {
+  let lines = common::read_input(file_name);
+  println!("Start solve");
+
+  let mut candidate_power = 4;
+  let mut winner = UnitType::None;
+  while winner != UnitType::Elf { // candidate_power
+    let (map, mut units) = load_grid(&lines);
+    print_map(&map, &units);
+    let mut rounds = 0;
+    winner = UnitType::None;
+    while winner == UnitType::None { // rounds
+      units.sort_by_key(|k| k.position.0*1000+k.position.1);
+      for i in 0..units.len() {
+        if units[i].hit_points > 0 {
+          let u = units[i].clone();
+          // println!("Working unit {:?}", u);
+          if !attack_unit(&map, &mut units, &u, candidate_power) {
+            move_unit(&map,&mut units,&u.clone());
+            let u = units[i].clone();
+            attack_unit(&map,&mut units,&u.clone(),candidate_power);
+          }
+
+          if dead_elves(&units) > 0 { println!("One dead elf after {} rounds at power {}", rounds, candidate_power); winner = UnitType::Goblin; break; }
+          if units.iter().filter(|u| u.kind == UnitType::Goblin && u.hit_points > 0).count() == 0
+          {
+            if units[i+1..].iter().filter(|my_unit| my_unit.hit_points > 0).count() == 0 { rounds = rounds + 1; }
+
+            println!("Elves win {} {} {}",units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points),  
+                rounds, rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
+            print_map(&map, &units);
+            winner = UnitType::Elf;
+            break;
+          }  
+        }
+      }
+
+      if winner == UnitType::None {
+        rounds = rounds + 1;
+      }
+      
+      if rounds % 1 == 0 {
+        println!("After {} round winner {:?}", rounds, winner);
+        print_map(&map, &units);
+      }
+    }
+
+    if winner == UnitType::Goblin {
+      candidate_power = candidate_power + 1;
+    } else {
+      println!("Elf WINS!");
+    }
+  }
+  println!("Day 15 part 2 candidate power {}!", candidate_power);
+  return candidate_power;
+}
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
   println!("Start solve");
