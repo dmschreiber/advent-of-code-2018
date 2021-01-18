@@ -10,7 +10,7 @@ mod tests {
   #[test]
   pub fn puzzle15_prod() {
     assert!(common::format_binary(10)=="1010");
-    super::solve("./inputs/puzzle15.txt".to_string());
+    assert!(250648==super::solve("./inputs/puzzle15.txt".to_string()));
   }
 }
 
@@ -64,61 +64,51 @@ fn path(map : &HashMap<(isize,isize),char>,
         units : &Vec<Unit>, so_far : usize, max : usize,
         cache : &mut HashMap<String,Option<usize>>) -> Option<usize> {
   
-  let mut min_distance = None;
+  let mut candidates = vec![];
+
   if point_a == point_b { 
-    println!("Found! returning zero {:?}", history); 
+    // println!("Found! returning zero {:?}", history); 
     return Some(0); 
   }
 
   if so_far >= max { return None; }
-  let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
+  let key = format!("{},{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1,history.len());
   let mut distance;
-  // if let Some(d) = cache.get(&key) {
-  //   distance = *d;
-  //   // println!("Got {:?} from key {}", distance, key);
-  //   return distance;
-  // }
+  if let Some(d) = cache.get(&key) {
+    distance = *d;
+    // println!("Got {:?} from key {}", distance, key);
+    return distance;
+  }
 
-  let mut neighbors = get_neighbors(map, units, &point_a);
+  let neighbors = get_neighbors(map, units, &point_a);
   // neighbors.sort_by_key(|k| manhattan_distance(*k, point_b));
 
   for n in neighbors {
     // println!("History {:?}, {:?}", point_a, so_far);
     // print_map_history(map, units, &history);
-    if n == point_b {
-      if min_distance == None ||so_far+1 < min_distance.unwrap() {
+    if !history.contains(&n) {
+      let mut new_history = history.clone();
+      new_history.push(n);
+      distance = path(&map, n, point_b, &new_history, &units, so_far+1, max, cache);
 
-        min_distance = Some(1);  
-        println!("Found! min_distance {:?}->{:?} {:?}", point_a, point_b, history); 
-        print_map_history(map, units, history);
-        break; 
-      }
-    } else if min_distance == None || so_far+1 <= min_distance.unwrap() {
-        if !history.contains(&n) {
-          let mut new_history = history.clone();
-          new_history.push(n);
-          distance = path(&map, n, point_b, &new_history, &units, so_far+1, max, cache);
-
-          if let Some(d) = distance {
-            if min_distance == None || d < min_distance.unwrap() {
-              min_distance = Some(d+1); 
-              if d as isize == manhattan_distance(n,point_b) { break; }
-            }
-          }
-        }
+      if let Some(d) = distance {
+        candidates.push(d+1);
       }
     }
-  
-  // let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
-  // // println!("Put {:?} to key {}", min_distance, key);
-  // if let Some(c) = cache.get_mut(&key) {
-  //   if *c == None || min_distance < *c {
-  //     *c = min_distance;
-  //   }
-  // } else {
-  //   cache.insert(key,min_distance);
-  // }
-  return min_distance;
+  }
+
+  let key = format!("{},{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1,history.len());
+  let minimum_distance = candidates.iter().map(|d| *d).min();
+  // println!("CANDIDATES {} - {:?} returning {:?}", key, candidates, minimum_distance);
+  // println!("Put {:?} to key {}", minimum_distance, key);
+  if let Some(c) = cache.get_mut(&key) {
+    *c = minimum_distance;
+  } else {
+    cache.insert(key,minimum_distance);
+  }
+
+  return minimum_distance;
+
 }
 
 pub fn print_map_history(map : &HashMap<(isize,isize),char>, units : &Vec<Unit>, history : &Vec<(isize,isize)>) {
@@ -188,10 +178,10 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
     }
   }
 
-  // println!("{:?}", candidates);
   if candidates.len() == 0 { return; }
 
   candidates.sort_by_key(|k| k.0*10000000 + k.1.0*100 + k.1.1);
+//  println!("{:?}", candidates);
   
   let top_candidate = candidates[0];
   let mut target_spot = u.position;
@@ -199,7 +189,6 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
       if let Some(d) = path(map, my_n, top_candidate.1, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
         if top_candidate.0 == d.try_into().unwrap() {
           println!("{:?} moves to {:?}", u, top_candidate);
-          let mut cache = HashMap::new();
 
          if path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache) !=
             path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache) {
@@ -224,7 +213,7 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
 
 }
 
-pub fn attack_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u : &Unit) -> bool {
+pub fn attack_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u : &Unit, elf_power : i32) -> bool {
   let mut candidates = vec![];
   for n in get_neighbors_with_units(map, &u.position) {
     if let Some(n_o) = units.iter().filter(|my_unit| my_unit.position == n && my_unit.hit_points > 0).nth(0) {
@@ -241,15 +230,15 @@ pub fn attack_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u
   // println!("ATTACK {:?} v {:?}", u.position, target_spot);
   let target_position = units.iter().position(|u| u.position==target_spot && u.hit_points > 0).unwrap();
   let mut target = units.get_mut(target_position).unwrap();
-  target.hit_points = target.hit_points - 3;
-
+  if u.kind == UnitType::Elf {
+    target.hit_points = target.hit_points - elf_power;
+  } else {
+    target.hit_points = target.hit_points - 3;
+  }
   return true;
 }
 
-pub fn solve(file_name : String) -> i64 {
-  let lines = common::read_input(file_name);
-  println!("Start solve");
-
+pub fn load_grid(lines : &Vec<String>) -> (HashMap<(isize,isize),char>, Vec<Unit>) {
   let mut units : Vec<Unit> = vec![];
 
   let mut map = common::make_map(&lines);
@@ -272,24 +261,31 @@ pub fn solve(file_name : String) -> i64 {
 
     }
   }
+  return (map,units);
+}
+
+pub fn solve_part2(file_name : String) -> i64 {
+  return 0;
+}
+
+pub fn solve(file_name : String) -> i64 {
+  let lines = common::read_input(file_name);
+  println!("Start solve");
+
+  let (map, mut units) = load_grid(&lines);
   let mut rounds = 0;
   print_map(&map, &units);
 
-  // let u = units[0].clone();
-  // if !attack_unit(&map, &mut units, &u) {
-  //   move_unit(&map, &mut units,&u);
-  //   attack_unit(&map, &mut units, &u);
-  // }
   loop {
     units.sort_by_key(|k| k.position.0*1000+k.position.1);
     for i in 0..units.len() {
       if units[i].hit_points > 0 {
         let u = units[i].clone();
         // println!("Working unit {:?}", u);
-        if !attack_unit(&map, &mut units, &u) {
+        if !attack_unit(&map, &mut units, &u, 3) {
           move_unit(&map,&mut units,&u.clone());
           let u = units[i].clone();
-          attack_unit(&map,&mut units,&u.clone());
+          attack_unit(&map,&mut units,&u.clone(),3);
         }
 
         if units.iter().filter(|u| u.kind == UnitType::Goblin && u.hit_points > 0).count() == 0 || 
@@ -310,10 +306,7 @@ pub fn solve(file_name : String) -> i64 {
       print_map(&map, &units);
     }
 
-    // 254784 too high
-    // ?? 2737 85 232645 -- too low
-    // ?? 2618 96 251328 -- too high
+    // 250648 solved
   }
 
-  // return 0;
 }
