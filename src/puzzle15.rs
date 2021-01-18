@@ -11,8 +11,8 @@ mod tests {
   #[test]
   pub fn puzzle15_prod() {
     assert!(common::format_binary(10)=="1010");
-    // assert!(250648==super::solve("./inputs/puzzle15.txt".to_string()));
-    super::solve_part2("./inputs/puzzle15.txt".to_string());
+    assert!(250648==super::solve("./inputs/puzzle15.txt".to_string()));
+    assert!(42224==super::solve_part2("./inputs/puzzle15.txt".to_string()));
   }
 }
 
@@ -193,18 +193,18 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   for my_n in get_neighbors(map, units, &u.position) {
       if let Some(d) = path(map, my_n, top_candidate.1, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
         if top_candidate.0 == d.try_into().unwrap() {
-          // println!("{:?} moves to {:?}", u, top_candidate);
+          println!("{:?} moves to {:?}", u, top_candidate);
 
-         if path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache) !=
-            path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache) {
-            println!("Compare {:?} to {:?} from {:?} to {:?}", 
-              path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache), 
-              path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache),
-              my_n,
-              top_candidate.1);
-            println!("{:?}", get_neighbors(map, units, &u.position));
-            panic!("reverse direction different length ({:?} to {:?})", my_n, top_candidate.1);
-          }
+        //  if path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache) !=
+        //     path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache) {
+        //     println!("Compare {:?} to {:?} from {:?} to {:?}", 
+        //       path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache), 
+        //       path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache),
+        //       my_n,
+        //       top_candidate.1);
+        //     println!("{:?}", get_neighbors(map, units, &u.position));
+        //     panic!("reverse direction different length ({:?} to {:?})", my_n, top_candidate.1);
+        //   }
           target_spot = my_n;
           break;
         } 
@@ -343,6 +343,8 @@ pub fn solve_part2(file_name : String) -> i32 {
   println!("Day 15 part 2 candidate power {} outcome {}!", hi_power, result.1);
   return result.1;
 }
+
+
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
   println!("Start solve");
