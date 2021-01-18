@@ -91,8 +91,8 @@ fn path(map : &HashMap<(isize,isize),char>,
     }
   }
 
-  let neighbors = get_neighbors(map, units, &point_a);
-  // neighbors.sort_by_key(|k| manhattan_distance(*k, point_b));
+  let mut neighbors = get_neighbors(map, units, &point_a);
+  neighbors.sort_by_key(|k| manhattan_distance(*k, point_b));
 
   for n in neighbors {
     // println!("History {:?}, {:?}", point_a, so_far);
@@ -104,11 +104,23 @@ fn path(map : &HashMap<(isize,isize),char>,
 
       if let Some(d) = distance {
         candidates.push(d+1);
+
+        if d+1 == manhattan_distance(point_a,point_b).try_into().unwrap() { break; }
       }
     }
   }
 
   let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
+  let minimum_distance = candidates.iter().map(|d| *d).min();
+  // println!("CANDIDATES {} - {:?} returning {:?}", key, candidates, minimum_distance);
+  // println!("Put {:?} to key {}", minimum_distance, key);
+  if let Some(c) = cache.get_mut(&key) {
+    c.push((history.len(),minimum_distance));
+  } else {
+    cache.insert(key,vec![(history.len(),minimum_distance)]);
+  }
+
+  let key = format!("{},{},{},{}", point_b.0, point_b.1, point_a.0, point_a.1);
   let minimum_distance = candidates.iter().map(|d| *d).min();
   // println!("CANDIDATES {} - {:?} returning {:?}", key, candidates, minimum_distance);
   // println!("Put {:?} to key {}", minimum_distance, key);
@@ -178,18 +190,16 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   let mut candidates = vec![];
   let mut clone_units = units.clone();
   clone_units.sort_by_key(|my_unit| manhattan_distance(my_unit.position, u.position));
-  
+
   for target in clone_units.iter().filter(|my_unit| my_unit.hit_points > 0 && my_unit.position != u.position && my_unit.kind != u.kind) {
     // println!("Checking out {:?}", target);
     for my_n in get_neighbors(map, units, &u.position) {
-
       for n in get_neighbors(map, units, &target.position) {
-        // println!("Calling path on {:?} {:?}", target.position, u.position);
         if candidates.len() > 0 && manhattan_distance(n, my_n) > candidates.iter().map(|(d,_p1,_p2)| *d).min().unwrap() { 
           // println!("for sure too far"); 
-        } else if let Some(d) = path(map, n, my_n, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
-            // println!("found path {:?} to {:?}", u.position, n);
-            candidates.push((d as isize,n,my_n));
+        } else if let Some(d) = path(map, n, my_n, &vec![], &clone_units, 0, 2*max_row+max_col, &mut cache) {
+          // println!("found path {:?} to {:?}", u.position, n);
+          candidates.push((d as isize,n,my_n));
         }
       }
     }
@@ -201,28 +211,7 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
 //  println!("{:?}", candidates);
   
   let top_candidate = candidates[0];
-  let mut target_spot = u.position;
-  for my_n in get_neighbors(map, units, &u.position) {
-      if let Some(d) = path(map, my_n, top_candidate.1, &vec![], &clone_units, 0, 4*max_row+max_col, &mut cache) {
-        if top_candidate.0 == d.try_into().unwrap() {
-          // println!("{:?} moves to {:?}", u, top_candidate);
-          
-        let d1 = path(map, top_candidate.1, my_n, &vec![], units, 0, max_row+max_col, &mut cache);
-        let d2 = path(map, my_n, top_candidate.1, &vec![], units, 0, max_row+max_col, &mut cache);
-        if d1 != d2 {
-            println!("Compare {:?} to {:?} from {:?} to {:?}", 
-              d1,
-              d2,
-              my_n,
-              top_candidate.1);
-            println!("{:?}", get_neighbors(map, units, &u.position));
-            panic!("reverse direction different length ({:?} to {:?})", my_n, top_candidate.1);
-          }
-          target_spot = my_n;
-          break;
-        } 
-      }
-    }
+  let target_spot = top_candidate.2; 
   
   // println!("MOVE {:?} to {:?}", u.position, target_spot);
   let target_position = units.iter().position(|my_unit| my_unit.position==u.position && my_unit.hit_points > 0).unwrap();
@@ -304,7 +293,7 @@ pub fn run_simulation(lines : &Vec<String>, candidate_power : i32) -> (UnitType,
         }
 
         if dead_elves(&units) > 0 { 
-          println!("One dead elf after {} rounds at power {}", rounds, candidate_power); 
+          // println!("One dead elf after {} rounds at power {}", rounds, candidate_power); 
 
           return (UnitType::Goblin,rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
         }
@@ -312,9 +301,9 @@ pub fn run_simulation(lines : &Vec<String>, candidate_power : i32) -> (UnitType,
         {
           if units[i+1..].iter().filter(|my_unit| my_unit.hit_points > 0).count() == 0 { rounds = rounds + 1; }
 
-          println!("Elves win {} {} {}",units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points),  
-              rounds, rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
-          print_map(&map, &units);
+          // println!("Elves win {} {} {}",units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points),  
+          //     rounds, rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
+          // print_map(&map, &units);
           return (UnitType::Elf,rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
         }  
       }
@@ -328,17 +317,16 @@ pub fn run_simulation(lines : &Vec<String>, candidate_power : i32) -> (UnitType,
 
 pub fn solve_part2(file_name : String) -> i32 {
   let lines = common::read_input(file_name);
-  println!("Start solve");
 
   let mut lo_power = 4;
-  let mut hi_power = 200;
-  let mut mid_power = (lo_power+hi_power)/2;
+  let mut hi_power = 50;
+  let mut mid_power;
+  let mut result;
 
-  // let mut candidate_power : i32 = mid_power;
-
-  while hi_power-lo_power > 1 {
+  loop {
+    mid_power = (lo_power + hi_power)/2;
     println!("{} {} {}", lo_power, mid_power, hi_power);
-    let result = run_simulation(&lines, mid_power);
+    result = run_simulation(&lines, mid_power);
     let winner = result.0;
 
     if winner == UnitType::Goblin {
@@ -346,10 +334,13 @@ pub fn solve_part2(file_name : String) -> i32 {
     } else {
       hi_power = mid_power;
     }
-    mid_power = (lo_power + hi_power)/2;
+    if hi_power-lo_power <= 1 { break; }
   }
 
-  let result = run_simulation(&lines, hi_power);
+  if mid_power != hi_power {
+    result = run_simulation(&lines, hi_power);
+  }
+
   println!("Day 15 part 2 candidate power {} outcome {}!", hi_power, result.1);
   return result.1;
 }
@@ -357,7 +348,6 @@ pub fn solve_part2(file_name : String) -> i32 {
 
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
-  println!("Start solve");
 
   let (map, mut units) = load_grid(&lines);
   let mut rounds = 0;
@@ -379,9 +369,9 @@ pub fn solve(file_name : String) -> i64 {
             units.iter().filter(|u| u.kind == UnitType::Elf && u.hit_points > 0).count() == 0 
         {
           if i == units.len()-1 { rounds = rounds + 1; }
-          println!("{} {} {}",units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points),  
-              rounds, rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
           print_map(&map, &units);
+          println!("Day 15 part 1 round:{} hit_points: {} outcome:{}",units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points),  
+              rounds, rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points));
           return (rounds * units.iter().filter(|u| u.hit_points > 0).fold(0, |acc,u| acc+u.hit_points)).try_into().unwrap();
         }  
       }
@@ -389,8 +379,8 @@ pub fn solve(file_name : String) -> i64 {
 
     rounds = rounds + 1;
     if rounds % 1 == 0 {
-      println!("After {} round", rounds);
-      print_map(&map, &units);
+      // println!("After {} round", rounds);
+      // print_map(&map, &units);
     }
 
     // 250648 solved
