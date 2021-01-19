@@ -363,8 +363,8 @@ pub fn solve(file_name : String) -> i64 {
 
     rounds = rounds + 1;
     if rounds % 1 == 0 {
-      // println!("After {} round", rounds);
-      // print_map(&map, &units);
+      println!("After {} round", rounds);
+      print_map(&map, &units);
     }
 
     // 250648 solved
