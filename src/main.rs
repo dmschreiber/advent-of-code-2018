@@ -32,10 +32,10 @@ async fn main() {
     let targets : Vec<(fn(std::string::String) -> i64,String)> = vec![
         (puzzle1::solve,"./inputs/puzzle1.txt".to_string()),
         (puzzle15::solve,"./inputs/puzzle15.txt".to_string()),
-        (puzzle14::solve,"./inputs/puzzle14.txt".to_string()),
+        (puzzle14::solve,"306281".to_string()),
         (puzzle13::solve,"./inputs/puzzle13.txt".to_string()),
         (puzzle12::solve,"./inputs/puzzle12.txt".to_string()),
-        (puzzle11::solve,"./inputs/puzzle11.txt".to_string()),
+        (puzzle11::solve,"2187".to_string()),
         (puzzle10::solve,"./inputs/puzzle10.txt".to_string()),
         (puzzle9::solve,"428 players; last marble is worth 70825 points".to_string()),
         (puzzle8::solve,"./inputs/puzzle8.txt".to_string()), // 2+ hrs
