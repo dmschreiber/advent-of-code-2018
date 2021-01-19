@@ -95,8 +95,6 @@ fn path(map : &HashMap<(isize,isize),char>,
   neighbors.sort_by_key(|k| manhattan_distance(*k, point_b));
 
   for n in neighbors {
-    // println!("History {:?}, {:?}", point_a, so_far);
-    // print_map_history(map, units, &history);
     if !history.contains(&n) {
       let mut new_history = history.clone();
       new_history.push(n);
@@ -112,18 +110,6 @@ fn path(map : &HashMap<(isize,isize),char>,
 
   let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
   let minimum_distance = candidates.iter().map(|d| *d).min();
-  // println!("CANDIDATES {} - {:?} returning {:?}", key, candidates, minimum_distance);
-  // println!("Put {:?} to key {}", minimum_distance, key);
-  if let Some(c) = cache.get_mut(&key) {
-    c.push((history.len(),minimum_distance));
-  } else {
-    cache.insert(key,vec![(history.len(),minimum_distance)]);
-  }
-
-  let key = format!("{},{},{},{}", point_b.0, point_b.1, point_a.0, point_a.1);
-  let minimum_distance = candidates.iter().map(|d| *d).min();
-  // println!("CANDIDATES {} - {:?} returning {:?}", key, candidates, minimum_distance);
-  // println!("Put {:?} to key {}", minimum_distance, key);
   if let Some(c) = cache.get_mut(&key) {
     c.push((history.len(),minimum_distance));
   } else {
@@ -131,7 +117,6 @@ fn path(map : &HashMap<(isize,isize),char>,
   }
 
   return minimum_distance;
-
 }
 
 pub fn print_map_history(map : &HashMap<(isize,isize),char>, units : &Vec<Unit>, history : &Vec<(isize,isize)>) {
@@ -191,7 +176,7 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   let mut clone_units = units.clone();
   clone_units.sort_by_key(|my_unit| manhattan_distance(my_unit.position, u.position));
 
-  for target in clone_units.iter().filter(|my_unit| my_unit.hit_points > 0 && my_unit.position != u.position && my_unit.kind != u.kind) {
+  for target in clone_units.iter().filter(|my_unit| my_unit.hit_points > 0 && my_unit.kind != u.kind) {
     // println!("Checking out {:?}", target);
     for my_n in get_neighbors(map, units, &u.position) {
       for n in get_neighbors(map, units, &target.position) {
@@ -206,9 +191,8 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   }
 
   if candidates.len() == 0 { return; }
-
+  // println!("{:?} has candidates {}", u, candidates.len());
   candidates.sort_by_key(|k| k.0*10000000 + k.1.0*100 + k.1.1);
-//  println!("{:?}", candidates);
   
   let top_candidate = candidates[0];
   let target_spot = top_candidate.2; 
