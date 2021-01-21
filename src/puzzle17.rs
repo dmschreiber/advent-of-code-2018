@@ -171,19 +171,24 @@ fn can_spread(map : &HashMap<(usize,usize),char>, point : (usize,usize)) -> bool
   return false;
 
 }
-
+fn spread_out_point(mut map : &mut HashMap<(usize,usize),char>, p : (usize,usize) ) {
+  if get_spot(&map, (p.0+1,p.1)) =='.' {
+    put_spot(&mut map, (p.0+1,p.1), '|');
+    if can_spread(map,(p.0+1,p.1)) { spread_out_point(&mut map, (p.0+1,p.1)); }
+  }
+  if get_spot(&map, (p.0-1,p.1)) =='.' {
+    put_spot(&mut map, (p.0-1,p.1), '|');
+    if can_spread(map,(p.0-1,p.1)) { spread_out_point(&mut map, (p.0-1,p.1)); } 
+  }
+}
 fn spread_out(mut map : &mut HashMap<(usize,usize),char>) {
 
   loop {
     let points = map.keys().filter(|k| can_spread(map,**k)).map(|k| *k).collect::<Vec<(usize,usize)>>();
     if points.len() == 0 { break; }
+
     for p in points {
-      if get_spot(&map, (p.0+1,p.1)) =='.' {
-        put_spot(&mut map, (p.0+1,p.1), '|');
-      }
-      if get_spot(&map, (p.0-1,p.1)) =='.' {
-        put_spot(&mut map, (p.0-1,p.1), '|');
-      }
+      spread_out_point(&mut map, p)
     }
   }
 }
@@ -233,6 +238,7 @@ pub fn solve(file_name : String) -> i64 {
     spread_out(&mut map);
     settle_out(&mut map);
     fall(&mut map);
+
     if water_count != (map.values().filter(|v| **v=='|').count(), map.values().filter(|v| **v=='~').count()) {
       water_count = (map.values().filter(|v| **v=='|').count(), map.values().filter(|v| **v=='~').count());
     } else {
