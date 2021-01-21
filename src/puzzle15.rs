@@ -68,22 +68,8 @@ fn manhattan_distance (p1 : (isize,isize), p2 : (isize,isize)) -> isize {
 
 pub extern crate pathfinding;
 
-use pathfinding::prelude::{absdiff,astar};
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct Pos(i32, i32);
+use pathfinding::prelude::astar;
 
-impl Pos {
-  fn distance(&self, other: &Pos) -> u32 {
-    (absdiff(self.0, other.0) + absdiff(self.1, other.1)) as u32
-  }
-
-  fn successors(&self) -> Vec<(Pos, u32)> {
-    let &Pos(x, y) = self;
-    vec![Pos(x+1,y+2), Pos(x+1,y-2), Pos(x-1,y+2), Pos(x-1,y-2),
-         Pos(x+2,y+1), Pos(x+2,y-1), Pos(x-2,y+1), Pos(x-2,y-1)]
-         .into_iter().map(|p| (p, 1)).collect()
-  }
-}
 
 
 fn other_path(map : &HashMap<(isize,isize),char>, 
