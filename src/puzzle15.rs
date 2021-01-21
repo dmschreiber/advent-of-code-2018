@@ -66,6 +66,40 @@ fn manhattan_distance (p1 : (isize,isize), p2 : (isize,isize)) -> isize {
   return (p1.0-p2.0).abs()+(p1.1-p2.1).abs();
 }
 
+pub extern crate pathfinding;
+
+use pathfinding::prelude::{absdiff,astar};
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct Pos(i32, i32);
+
+impl Pos {
+  fn distance(&self, other: &Pos) -> u32 {
+    (absdiff(self.0, other.0) + absdiff(self.1, other.1)) as u32
+  }
+
+  fn successors(&self) -> Vec<(Pos, u32)> {
+    let &Pos(x, y) = self;
+    vec![Pos(x+1,y+2), Pos(x+1,y-2), Pos(x-1,y+2), Pos(x-1,y-2),
+         Pos(x+2,y+1), Pos(x+2,y-1), Pos(x-2,y+1), Pos(x-2,y-1)]
+         .into_iter().map(|p| (p, 1)).collect()
+  }
+}
+
+
+fn other_path(map : &HashMap<(isize,isize),char>, 
+          point_a : (isize,isize), 
+          point_b : (isize,isize), 
+          units : &Vec<Unit>) -> Option<(std::vec::Vec<(isize, isize)>, isize)> {
+
+  let result : Option<(Vec<(isize,isize)>,isize)> = 
+                    astar(&point_a, 
+                    |p| get_neighbors(map, units, p).into_iter().map(|p| (p, 1)).collect::<Vec<((isize,isize),isize)>>(), 
+                    |p| manhattan_distance(*p, point_b),
+                    |p| *p == point_b);
+  return result;
+  // assert_eq!(result.expect("no path found").1, 4);
+}
+
 fn path(map : &HashMap<(isize,isize),char>, 
         point_a : (isize,isize), 
         point_b : (isize,isize), 
@@ -170,7 +204,7 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
   let max_row : usize= *map.keys().map(|(r,_c)| r).max().unwrap() as usize;
   let max_col : usize = *map.keys().map(|(_r,c)| c).max().unwrap() as usize;
 
-  let mut cache = HashMap::new();
+  // let mut cache = HashMap::new();
 
   let mut candidates = vec![];
   let mut clone_units = units.clone();
@@ -182,9 +216,10 @@ pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u :
       for n in get_neighbors(map, units, &target.position) {
         if candidates.len() > 0 && manhattan_distance(n, my_n) > candidates.iter().map(|(d,_p1,_p2)| *d).min().unwrap() { 
           // println!("for sure too far"); 
-        } else if let Some(d) = path(map, n, my_n, &vec![], &clone_units, 0, 2*max_row+max_col, &mut cache) {
+        // } else if let Some(d) = path(map, n, my_n, &vec![], &clone_units, 0, 2*max_row+max_col, &mut cache) {
+        } else if let Some(d) = other_path(map, n, my_n, units) {
           // println!("found path {:?} to {:?}", u.position, n);
-          candidates.push((d as isize,n,my_n));
+          candidates.push((d.1 as isize,n,my_n));
         }
       }
     }
