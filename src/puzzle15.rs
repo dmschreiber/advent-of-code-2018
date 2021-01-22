@@ -83,60 +83,6 @@ fn other_path(map : &HashMap<(isize,isize),char>,
                     |p| manhattan_distance(*p, point_b),
                     |p| *p == point_b);
   return result;
-  // assert_eq!(result.expect("no path found").1, 4);
-}
-
-fn path(map : &HashMap<(isize,isize),char>, 
-        point_a : (isize,isize), 
-        point_b : (isize,isize), 
-        history : &Vec<(isize,isize)>, 
-        units : &Vec<Unit>, so_far : usize, max : usize,
-        cache : &mut HashMap<String,Vec<(usize,Option<usize>)>>) -> Option<usize> {
-  
-  let mut candidates = vec![];
-
-  if point_a == point_b { 
-    // println!("Found! returning zero {:?}", history); 
-    return Some(0); 
-  }
-
-  if so_far >= max { return None; }
-  let mut distance;
-  let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
-  if let Some(d) = cache.get(&key) {
-    if d.iter().filter(|r| r.0 <= history.len()).count() > 0 {
-      distance = d.iter().filter(|r| r.0 <= history.len()).map(|r| r.1).filter(|r| *r != None).map(|r| r.unwrap()).min();
-      // println!("Got {:?} from key {}", distance, key);
-      return distance;
-    }
-  }
-
-  let mut neighbors = get_neighbors(map, units, &point_a);
-  neighbors.sort_by_key(|k| manhattan_distance(*k, point_b));
-
-  for n in neighbors {
-    if !history.contains(&n) {
-      let mut new_history = history.clone();
-      new_history.push(n);
-      distance = path(&map, n, point_b, &new_history, &units, so_far+1, max, cache);
-
-      if let Some(d) = distance {
-        candidates.push(d+1);
-
-        if d+1 == manhattan_distance(point_a,point_b).try_into().unwrap() { break; }
-      }
-    }
-  }
-
-  let key = format!("{},{},{},{}", point_a.0, point_a.1, point_b.0, point_b.1);
-  let minimum_distance = candidates.iter().map(|d| *d).min();
-  if let Some(c) = cache.get_mut(&key) {
-    c.push((history.len(),minimum_distance));
-  } else {
-    cache.insert(key,vec![(history.len(),minimum_distance)]);
-  }
-
-  return minimum_distance;
 }
 
 pub fn print_map_history(map : &HashMap<(isize,isize),char>, units : &Vec<Unit>, history : &Vec<(isize,isize)>) {
@@ -187,8 +133,8 @@ pub fn print_map(map : &HashMap<(isize,isize),char>, units : &Vec<Unit>) {
   }
 }
 pub fn move_unit(map : &HashMap<(isize,isize),char>, units : &mut Vec<Unit>, u : &Unit) {
-  let max_row : usize= *map.keys().map(|(r,_c)| r).max().unwrap() as usize;
-  let max_col : usize = *map.keys().map(|(_r,c)| c).max().unwrap() as usize;
+  // let max_row : usize= *map.keys().map(|(r,_c)| r).max().unwrap() as usize;
+  // let max_col : usize = *map.keys().map(|(_r,c)| c).max().unwrap() as usize;
 
   // let mut cache = HashMap::new();
 
