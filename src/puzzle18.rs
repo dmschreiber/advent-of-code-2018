@@ -84,8 +84,8 @@ pub fn solve_part2(file_name : String) -> i64 {
 
   let mut map = common::make_map(&lines);
 
-  let mut lumberyard = 0;
-  let mut wood = 0;
+  let mut lumberyard ;
+  let mut wood;
   let mut history = vec![];
   let mut cycles = HashMap::new();
 
@@ -95,6 +95,8 @@ pub fn solve_part2(file_name : String) -> i64 {
 
   loop {
     map = one_minute(&map);
+    lumberyard = map.values().filter(|c| **c=='#').count();
+    wood = map.values().filter(|c| **c=='|').count();
     minute = minute + 1;
 
     let k = map_string(&map);
@@ -104,8 +106,6 @@ pub fn solve_part2(file_name : String) -> i64 {
         cycle = minute - history.iter().position(|which| *which == k).unwrap() - 1;
       }
 
-      lumberyard = map.values().filter(|c| **c=='#').count();
-      wood = map.values().filter(|c| **c=='|').count();
       // print_map(&map);
       cycles.insert((minute - repeat_starts) % cycle, lumberyard*wood);
       // println!("minute {} offset, lumberyard {}, wood {}, result {}", (minute - repeat_starts) % cycle, lumberyard, wood, lumberyard*wood);
@@ -117,7 +117,7 @@ pub fn solve_part2(file_name : String) -> i64 {
     } else {
       history.push(map_string(&map));
     }
-    println!("minute {}", minute);
+    // println!("minute {}", minute);
   }
 
   println!("lumberyard {}, wood {}, result {}", lumberyard, wood, lumberyard*wood);
@@ -134,14 +134,13 @@ pub fn solve(file_name : String) -> i64 {
   let mut wood = 0;
   print_map(&map);
   
-  for i in 0..10 {
+  for _i in 0..10 {
     map = one_minute(&map);
-    println!("minute {}", i+1);
-    print_map(&map);
     lumberyard = map.values().filter(|c| **c=='#').count();
     wood = map.values().filter(|c| **c=='|').count();
-    println!("lumberyard {}, wood {}, result {}", lumberyard, wood, lumberyard*wood);
+
   }
+  print_map(&map);
 
   println!("lumberyard {}, wood {}, result {}", lumberyard, wood, lumberyard*wood);
 
