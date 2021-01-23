@@ -21,9 +21,9 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use regex::Regex;
 
-const OPCODES: [&'static str; 16] = ["addr", "addi", "mulr", "muli", "banr", "bani", "borr", "bori", "setr", "seti", "gtir", "gtri", "gtrr", "eqir", "eqri", "eqrr"];
+pub const OPCODES: [&'static str; 16] = ["addr", "addi", "mulr", "muli", "banr", "bani", "borr", "bori", "setr", "seti", "gtir", "gtri", "gtrr", "eqir", "eqri", "eqrr"];
 
-fn op_code ( op_code : usize, args : Vec<usize>, state : &Vec<usize>) -> Vec<usize> {
+pub fn op_code ( op_code : usize, args : Vec<usize>, state : &Vec<usize>) -> Vec<usize> {
   let mut retval = state.clone();
   let (reg_a, reg_b, reg_c) = (args[0], args[1], args[2]);
 
