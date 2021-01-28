@@ -18,11 +18,10 @@ mod tests {
 }
 
 use crate::common;
-use std::convert::TryInto;
-use std::time::Instant;
+// use std::convert::TryInto;
+// use std::time::Instant;
 use regex::Regex;
 use std::collections::HashMap;
-use std::str;
 
 lazy_static! {
   static ref INNER_REGEX: Regex = Regex::new(r"^(.*)\(([^\(\)]+)\)(.*)$").unwrap();
@@ -45,11 +44,11 @@ fn expand_regex(expression : &String) -> Vec<String> {
   return v;
 }
 
-fn print_vec(v : &Vec<String>) {
-  for i in v {
-    println!("{}", i);
-  }
-}
+// fn print_vec(v : &Vec<String>) {
+//   for i in v {
+//     println!("{}", i);
+//   }
+// }
 
 fn expansion_remains(v : &Vec<String>) -> bool {
   for item in v {
@@ -66,7 +65,7 @@ pub fn max_expand(expression : &String) -> Vec<String> {
   loop {
     let mut result = vec![];
     for item in &start {
-      let timer = Instant::now();
+
       if item.contains("|") {
         let mut expanded = expand_regex(&item);
         result.append(&mut expanded);
@@ -92,6 +91,7 @@ pub fn max_expand(expression : &String) -> Vec<String> {
   return start;
 }
 
+#[allow(dead_code)]
 fn draw(direction : &String) {
   let mut map = HashMap::new();
 
@@ -104,7 +104,7 @@ fn draw(direction : &String) {
     if *b == b'W' { p.0 = p.0 - 2;  map.insert((p.0+1,p.1),'|'); }
     map.insert((p.0,p.1), '.');
   }
-
+  map.insert((p.0,p.1),'O');
 
   let min_x : isize = map.keys().map(|(x,_y)| *x).min().unwrap();
   let max_x : isize = map.keys().map(|(x,_y)| *x).max().unwrap();
@@ -152,9 +152,6 @@ fn calculate_doors(direction : &String) -> usize {
   return doors.len();
 }
 
-fn manhattan_distance (p1 : (isize,isize), p2 : (isize, isize)) -> isize {
-  return (p2.1-p1.1).abs() + (p2.0-p1.0).abs();
-}
 
 #[derive(Debug,Clone)]
 pub struct Thing {
@@ -212,9 +209,9 @@ pub fn strip_outer(expression : &String) -> Vec<Thing> {
     }
   }
 
-  if buffer.len() > 0 {
+  // if buffer.len() > 0 {
     v.push(Thing { expression : String::from_utf8(buffer).unwrap().to_string(), children : vec![] , thing1 : vec![], thing2 : vec![]});
-  }
+  // }
   return v;
 }
 
@@ -296,59 +293,162 @@ fn find_variations(things : &Vec<Thing>) -> Vec<String> {
     }
   }
 
-  retval = map.values().map(|(d,s)| s.to_string()).collect::<Vec<String>>();
+  retval = map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
   retval.sort_by_key(|k| calculate_doors(k) as isize * -1);
-  // println!("returning {}", retval.len());
-  return retval;
+  let cap = 500;
+
+  // println!("found {}", retval.len());
+  if retval.len() > cap {
+    return retval[0..cap].to_vec();
+  } else {
+    return retval;
+  }
   // if retval.len()> 0 {
-    // for d in retval[0..std::cmp::min(retval.len(),2)].iter() {
-    //   println!("farthest {:?}:{} (and {} other options)", 
-    //   calculate_destination(d), 
-    //   calculate_doors(d), retval.iter().filter(|which| calculate_destination(which)==calculate_destination(d)).count());
-    // }
+  //   for d in retval[0..std::cmp::min(retval.len(),10)].iter() {
+  //     println!("farthest {:?}:{} (and {} other options)", 
+  //     calculate_destination(d), 
+  //     calculate_doors(d), retval.iter().filter(|which| calculate_destination(which)==calculate_destination(d)).count());
+  //   }
   // }
 
-  // if retval.len() > cap {
-  //   // println!("returning {:?}", retval[0]);
-  //   return retval[0..cap].to_vec(); 
-  // } else { 
-  //   return retval;
-  // }
 }
 // 1522 is too low
 // 1586 not right (-23,26)
 // 1553 not right (-23,26)
 // Smallest to (17, -47) is 4142 (too high)
 
+fn draw_map(map : &HashMap<(isize,isize),u8>, p : (isize,isize)) {
+  let min_x : isize = map.keys().map(|(x,_y)| *x).min().unwrap();
+  let max_x : isize = map.keys().map(|(x,_y)| *x).max().unwrap();
+  let min_y : isize = map.keys().map(|(_x,y)| *y).min().unwrap();
+  let max_y : isize = map.keys().map(|(_x,y)| *y).max().unwrap();
+  let mut bottom = "".to_string();
+  for y in (min_y..=max_y).rev() {
+    let mut line1 = "".to_string();
+    let mut line2 = "".to_string();
+    bottom = "".to_string();
+    for x in min_x..=max_x {
+      bottom = bottom + "##";
+      if let Some(c) = map.get(&(x,y)) {
+        if *c & 0x01 == 0x01 {
+          line1 = line1 + "#-";
+        } else {
+          line1 = line1 + "##";
+        }
+
+        if *c & 0x08 == 0x08 {
+          line2 = line2 + "|";
+        } else {
+          line2 = line2 + "#";
+        }
+
+        if x == 0 && y == 0 {
+          line2 = line2 + "X";
+        } else if x == p.0 && y == p.1 {
+          line2 = line2 + "O";
+        } else {
+          line2 = line2 + ".";
+        }
+
+      } else {
+        line1 = line1 + "  ";
+        line2 = line2 + "  "
+      }
+    }
+    println!("{}#", line1);
+    println!("{}#", line2);
+  }
+  println!("{}#", bottom);  
+}
+fn put_camefrom_spot(map : &mut HashMap<(isize,isize),u8>, p : (isize,isize), direction : char) {
+  let opposite = match direction {
+    'N' => 'S',
+    'S' => 'N',
+    'E' => 'W',
+    'W' => 'E',
+    _ => { panic!("misdirection"); }
+  };
+  put_cango_spot(map, p, opposite);
+}
+
+
+fn put_cango_spot(map : &mut HashMap<(isize,isize),u8>, p : (isize,isize), direction : char) {
+  let num =     match direction {
+    'N' => { 0x01 }
+    'E' => { 0x02 }
+    'S' => { 0x04 }
+    'W' => { 0x08 }
+    _ => { panic!("misdirection");}
+    };
+
+  if let Some(existing) = map.get_mut(&p) {
+    *existing = *existing | num;
+  } else {
+    map.insert(p,num);
+  }
+}
+
+fn get_neighbors(map : &HashMap<(isize,isize),u8>, p : &(isize,isize)) -> Vec<(isize,isize)> {
+  let mut v = vec![];
+
+  if let Some(num) = map.get(p) {
+    if num & 0x01 == 0x01 { v.push((p.0,p.1+1)); }
+    if num & 0x02 == 0x02 { v.push((p.0+1,p.1)); }
+    if num & 0x04 == 0x04 { v.push((p.0,p.1-1)); }
+    if num & 0x08 == 0x08 { v.push((p.0-1,p.1)); }
+  }
+  return v;
+}
+
+pub extern crate pathfinding;
+
+use pathfinding::prelude::astar;
+
+
+fn manhattan_distance (p1 : (isize,isize), p2 : (isize,isize)) -> isize {
+  return (p1.0-p2.0).abs()+(p1.1-p2.1).abs();
+}
+fn other_path(map : &HashMap<(isize,isize),u8>, 
+          point_a : (isize,isize), 
+          point_b : (isize,isize)) -> Option<(std::vec::Vec<(isize, isize)>, isize)> {
+
+  let result : Option<(Vec<(isize,isize)>,isize)> = 
+                    astar(&point_a, 
+                    |p| get_neighbors(map, p).into_iter().map(|p| (p, 1)).collect::<Vec<((isize,isize),isize)>>(), 
+                    |p| manhattan_distance(*p, point_b),
+                    |p| *p == point_b);
+  return result;
+}
+
 pub fn solve(file_name : String) -> i64 {
   let lines = common::read_input(file_name);
   for l in lines {
+    println!("Working {}", l[0..std::cmp::min(70,l.len())].to_string());
     let tree = strip_outer(&l);
-    print_things(&tree,"".to_string());
+    // print_things(&tree,"".to_string());
     let d = find_furthest(&tree);
 
     println!("{:?} - {} to {:?}", d, calculate_doors(&d), calculate_destination(&d));
     let v = find_variations(&tree);
 
     let mut map = HashMap::new();
-    for each_d in &v {
-      if let Some(existing) = map.get_mut(&calculate_destination(&each_d)) {
-        let doors = calculate_doors(&each_d);
-        if doors < *existing {
-          *existing = doors;
+    for item in &v {
+      for i in 0..=item.len() {
+        let each_d = item[0..i].to_string();
+        if i < item.len() {
+          put_cango_spot(&mut map, calculate_destination(&each_d), item.as_bytes()[i] as char);
         }
-      } else {
-        map.insert(calculate_destination(&d),calculate_doors(&each_d));
+        if i > 0 {
+          put_camefrom_spot(&mut map, calculate_destination(&each_d), item.as_bytes()[i-1] as char);
+        }
       }
     }
     println!("{} variations", map.len());
-    println!("{:?}", map.keys()
-                    .filter(|d| *map.get(d).unwrap() > 1500)
-                    .map(|d| (*d,*map.get(d).unwrap())).collect::<Vec<((isize,isize),usize)>>());
-
+    draw_map(&map, calculate_destination(&d));
     println!("{}", v[0]);
-    let d1 = v.iter().filter(|which| calculate_destination(which)==calculate_destination(&d)).map(|which| calculate_doors(which)).min().unwrap();
-    println!("min to {:?} is {}", calculate_destination(&d), d1);
+    draw(&v[0]);
+    println!("astar path {:?}", other_path(&map,  calculate_destination(&v[0]), (0,0)).unwrap().1);
+    println!("min to {:?} is {}", calculate_destination(&v[0]), calculate_doors(&v[0]));
 
     // let options = max_expand(&l);
     // let mut doors = 0;
