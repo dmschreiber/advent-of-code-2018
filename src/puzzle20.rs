@@ -162,6 +162,10 @@ pub struct Thing {
 }
 
 pub fn print_things(things : &Vec<Thing>, depth : String) {
+  if things.len() == 0 {
+    println!("{}<nothing>", depth);
+  }
+
   for t in things {
     if t.children.len() != 0 {
       print_things(&t.children, format!("-{}", depth));
@@ -209,9 +213,9 @@ pub fn strip_outer(expression : &String) -> Vec<Thing> {
     }
   }
 
-  // if buffer.len() > 0 {
+  if buffer.len() > 0 {
     v.push(Thing { expression : String::from_utf8(buffer).unwrap().to_string(), children : vec![] , thing1 : vec![], thing2 : vec![]});
-  // }
+  }
   return v;
 }
 
@@ -255,7 +259,8 @@ fn combos(l1 : &Vec<String>, l2 : &Vec<String>) -> Vec<String> {
 fn find_variations(things : &Vec<Thing>) -> Vec<String> {
   let mut retval : Vec<String> = vec![];
 
-  for thing in things {
+  for (_i,thing) in things.iter().enumerate() {
+    // println!("{} of {}", i+1, things.len());
     if thing.children.len() != 0 {
       let mut candidates = find_variations(&thing.children);
       if retval.len() > 0 {
@@ -280,29 +285,30 @@ fn find_variations(things : &Vec<Thing>) -> Vec<String> {
     }
   }
 
+  // println!("pre-reduce {:?}", retval);
   let mut map : HashMap<(isize,isize),(usize,String)> = HashMap::new();
   for d in &retval {
     if let Some(existing) = map.get_mut(&calculate_destination(&d)) {
-      let doors = calculate_doors(&d);
-      if doors < existing.0 {
+      let doors = d.len(); // calculate_doors(&d);
+      if doors > existing.0 {
         existing.0 = doors;
         existing.1 = d.to_string();
       }
     } else {
-      map.insert(calculate_destination(&d),(calculate_doors(&d),d.clone()));
+      map.insert(calculate_destination(&d),(d.len(),d.clone()));
     }
   }
-
   retval = map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
+  
   retval.sort_by_key(|k| calculate_doors(k) as isize * -1);
-  let cap = 500;
+  // let cap = 1000;
 
   // println!("found {}", retval.len());
-  if retval.len() > cap {
-    return retval[0..cap].to_vec();
-  } else {
+  // if retval.len() > cap {
+    // return retval[0..cap].to_vec();
+  // } else {
     return retval;
-  }
+  // }
   // if retval.len()> 0 {
   //   for d in retval[0..std::cmp::min(retval.len(),10)].iter() {
   //     println!("farthest {:?}:{} (and {} other options)", 
@@ -425,6 +431,7 @@ pub fn solve(file_name : String) -> i64 {
   for l in lines {
     println!("Working {}", l[0..std::cmp::min(70,l.len())].to_string());
     let tree = strip_outer(&l);
+
     // print_things(&tree,"".to_string());
     let d = find_furthest(&tree);
 
@@ -445,8 +452,9 @@ pub fn solve(file_name : String) -> i64 {
     }
     println!("{} variations", map.len());
     draw_map(&map, calculate_destination(&d));
-    println!("{}", v[0]);
-    draw(&v[0]);
+    println!("{:?}", map.keys().map(|which| (*which, other_path(&map, *which, (0,0)).unwrap().1 ) ).collect::<Vec<((isize,isize),isize)>>());
+    // draw(&v[0]);
+    println!("biggest astar {}", map.keys().map(|p| other_path(&map, *p, (0,0)).unwrap().1).max().unwrap());
     println!("astar path {:?}", other_path(&map,  calculate_destination(&v[0]), (0,0)).unwrap().1);
     println!("min to {:?} is {}", calculate_destination(&v[0]), calculate_doors(&v[0]));
 
