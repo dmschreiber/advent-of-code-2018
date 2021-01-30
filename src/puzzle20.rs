@@ -125,6 +125,17 @@ fn draw(direction : &String) {
   }
 }
 
+fn calculate_relative_destination(direction : &String, start : (isize,isize)) -> (isize,isize) {
+  let mut p = start;
+
+  for b in direction.as_bytes() {
+    if *b == b'N' { p.1 = p.1 + 1; }
+    if *b == b'S' { p.1 = p.1 - 1;  }
+    if *b == b'E' { p.0 = p.0 + 1;  }
+    if *b == b'W' { p.0 = p.0 - 1;  }
+  }
+  return p;
+}
 fn calculate_destination(direction : &String) -> (isize,isize) {
   let mut p = (0,0);
 
@@ -152,13 +163,11 @@ fn calculate_doors(direction : &String) -> usize {
   return doors.len();
 }
 
-
 #[derive(Debug,Clone)]
-pub struct Thing {
-  expression : String,
-  children : Vec<Thing>,
-  thing1 : Vec<Thing>,
-  thing2 : Vec<Thing>,
+pub enum Thing {
+  expression(String),
+  children(Vec<Thing>),
+  or(Vec<Thing>,Vec<Thing>),
 }
 
 pub fn print_things(things : &Vec<Thing>, depth : String) {
@@ -167,13 +176,10 @@ pub fn print_things(things : &Vec<Thing>, depth : String) {
   }
 
   for t in things {
-    if t.children.len() != 0 {
-      print_things(&t.children, format!("-{}", depth));
-    } else if t.thing1.len() != 0 || t.thing2.len() != 0 {
-      print_things(&t.thing1, format!(" OR {}", depth));
-      print_things(&t.thing2, format!(" OR {}", depth));
-    } else {
-      println!("{}{} - {}", depth, t.expression, calculate_doors(&t.expression));
+    match t {
+      Thing::children(some) => { print_things(some, format!("-{}", depth)); }
+      Thing::or(t1,t2) => { print_things(t1, format!(" OR {}", depth)); print_things(t2, format!(" OR {}", depth)); }
+      Thing::expression(e) => { println!("{}{} - {}", depth, e, calculate_doors(e)); }
     }
   }
 }
@@ -188,14 +194,14 @@ pub fn strip_outer(expression : &String) -> Vec<Thing> {
     if *b == b'(' {
       level = level + 1;
       if level == 1 {
-        v.push(Thing { expression : String::from_utf8(buffer.clone()).unwrap().to_string(), children : vec![], thing1 : vec![], thing2 : vec![] });
+        v.push( Thing::expression( String::from_utf8(buffer.clone()).unwrap().to_string()));
         buffer.clear();
       } 
     } else if *b == b')' {
       level = level - 1;
       if level == 0 {
         let inner = String::from_utf8(buffer.clone()).unwrap().to_string();
-        v.push(Thing { expression : inner.clone(), children : vec![], thing1: strip_outer(&last_inner), thing2 : strip_outer(&inner) });
+        v.push(Thing::or(strip_outer(&last_inner), strip_outer(&inner) ));
         buffer.clear();
       } 
     } else if *b == b'|' && level == 1 {
@@ -214,7 +220,7 @@ pub fn strip_outer(expression : &String) -> Vec<Thing> {
   }
 
   if buffer.len() > 0 {
-    v.push(Thing { expression : String::from_utf8(buffer).unwrap().to_string(), children : vec![] , thing1 : vec![], thing2 : vec![]});
+    v.push(Thing::expression ( String::from_utf8(buffer).unwrap().to_string()));
   }
   return v;
 }
@@ -223,20 +229,19 @@ fn find_furthest(things : &Vec<Thing>) -> String {
   let mut retval = "".to_string();
 
   for thing in things {
-    if thing.children.len() != 0 {
-      retval = retval + &find_furthest(&thing.children);
-    } else if thing.thing1.len() > 0 || thing.thing2.len()> 0 {
-      let option1 = find_furthest(&thing.thing1);
-      let option2 = find_furthest(&thing.thing2);
-      // if option1.len() > option2.len() {
-      if calculate_doors(&option1) > calculate_doors(&option2) {
-        retval = retval + &option1;
-      } else {
-        retval = retval + &option2;
+    match thing {
+      Thing::children(some) => { retval = retval + &find_furthest(some); }
+      Thing::or(thing1,thing2) => {
+        let option1 = find_furthest(thing1);
+        let option2 = find_furthest(thing2);
+        // if option1.len() > option2.len() {
+        if calculate_doors(&option1) > calculate_doors(&option2) {
+          retval = retval + &option1;
+        } else {
+          retval = retval + &option2;
+        }  
       }
-      
-    } else {
-      retval = retval + &thing.expression.clone();
+      Thing::expression(e) => { retval = retval + &e; }
     }
   }
   return retval;
@@ -266,63 +271,76 @@ fn compare_directions(exp1 : &String, exp2 : &String) -> u32 {
   return count;
 }
 
-fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, map : &mut &HashMap<(isize,isize),u8>) -> Vec<String> {
+fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, map : &mut HashMap<(isize,isize),u8>) -> Vec<String> {
   let mut retval : Vec<String> = vec![];
 
   for (_i,thing) in things.iter().enumerate() {
     // println!("{} of {}", i+1, things.len());
     let mut in_progress_starting_points = retval.iter().map(|d| calculate_destination(d)).collect::<Vec<(isize,isize)>>();
     in_progress_starting_points.dedup();
-    if thing.children.len() != 0 {
-      let mut candidates = find_variations(&thing.children, &in_progress_starting_points, map);
-      if retval.len() > 0 {
-        retval = combos(&retval, &candidates);
-      } else {
-        retval.append(&mut candidates);
+    for s in starting_points {
+      for ipsp in in_progress_starting_points.iter_mut() {
+        ipsp.0 = ipsp.0 + s.0;
+        ipsp.1 = ipsp.1 + s.1;
       }
+    }
+    match thing {
+      Thing::children(some) => {
+        let mut candidates = find_variations(&some, &in_progress_starting_points, map);
+        if retval.len() > 0 {
+          retval = combos(&retval, &candidates);
+        } else {
+          retval.append(&mut candidates);
+        }
+      }  
+      Thing::or(thing1,thing2) => {
+        let option1 = find_variations(&thing1,&in_progress_starting_points, map);
+        let mut new_retval = combos(&retval, &option1);
+  
+        let option2 = find_variations(&thing2,&in_progress_starting_points, map);
+        retval = combos(&retval, &option2);
+        retval.append(&mut new_retval);  
+      }
+      Thing::expression(e) => {
+        if retval.len() > 0 {
+          retval = combos(&retval, &vec![e.clone()]);
+        } else {
+          retval.push(e.clone());
+        }  
+      }
+    }
 
-    } else if thing.thing1.len() > 0 || thing.thing2.len()> 0 {
-      let option1 = find_variations(&thing.thing1,&in_progress_starting_points, map);
-      let mut new_retval = combos(&retval, &option1);
+  }
 
-      let option2 = find_variations(&thing.thing2,&in_progress_starting_points, map);
-      retval = combos(&retval, &option2);
-      retval.append(&mut new_retval);
-    } else {
-      if retval.len() > 0 {
-        retval = combos(&retval, &vec![thing.expression.clone()]);
+  let mut reduce_map : HashMap<(isize,isize),(usize,String)> = HashMap::new();
+  for s in starting_points {
+    // println!("starting at {:?}", s);
+    if *s == (-8,3) { println!("{:?}", things); }
+    for item in &retval {
+      // println!("starting at {:?} go {}", s, item);
+      if let Some(existing) = reduce_map.get_mut(&calculate_relative_destination(&item,*s)) {
+        let doors = item.len(); // calculate_doors(&d);
+        if doors < existing.0 {
+          existing.0 = doors;
+          existing.1 = item.to_string();
+        }
       } else {
-        retval.push(thing.expression.clone());
+        reduce_map.insert(calculate_relative_destination(&item,*s),(item.len(),item.clone()));
+      }
+  
+      for i in 0..=item.len() {
+        let each_d = item[0..i].to_string();
+        if i < item.len() {
+          put_cango_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i] as char);
+        }
+        if i > 0 {
+          put_camefrom_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i-1] as char);
+        }
       }
     }
   }
 
-  // println!("pre-reduce {:?}", retval).len();
-  let mut map : HashMap<(isize,isize),(usize,String)> = HashMap::new();
-  for d in &retval {
-    if let Some(existing) = map.get_mut(&calculate_destination(&d)) {
-      let doors = d.len(); // calculate_doors(&d);
-      if doors > existing.0 {
-        existing.0 = doors;
-        existing.1 = d.to_string();
-      }
-    } else {
-      map.insert(calculate_destination(&d),(d.len(),d.clone()));
-    }
-  }
-
-  // let original_count = retval.len();
-  // let mut alternatives = vec![];
-  // for which in map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>().iter() {
-  //   let mut candidates = retval.iter()
-  //                 .filter(|d| *d != which && calculate_destination(d)==calculate_destination(&which) && d.len()<600)
-  //                 .map(|s| s.to_string()).collect::<Vec<String>>();
-  //   alternatives.append(&mut candidates);
-  // }
-  retval = map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
-  // retval.append(&mut alternatives);
-
-  println!("starting points {:?} and results {}", starting_points, retval.len());
+  retval = reduce_map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
 
   // println!("reduce {} to {}", original_count, retval.len());
   retval.sort_by_key(|k| calculate_doors(k) as isize * -1);
@@ -448,27 +466,27 @@ pub fn solve(file_name : String) -> i64 {
 
     println!("{:?} - {} to {:?}", d, calculate_doors(&d), calculate_destination(&d));
     let mut new_map = HashMap::new();
-    let v = find_variations(&tree, &vec![(0,0)],&mut &new_map);
+    let v = find_variations(&tree, &vec![(0,0)],&mut new_map);
     println!("{} variations", v.len());
     draw_map(&new_map, calculate_destination(&d));
-    
-    let mut map = HashMap::new();
-    for item in &v {
-      for i in 0..=item.len() {
-        let each_d = item[0..i].to_string();
-        if i < item.len() {
-          put_cango_spot(&mut map, calculate_destination(&each_d), item.as_bytes()[i] as char);
-        }
-        if i > 0 {
-          put_camefrom_spot(&mut map, calculate_destination(&each_d), item.as_bytes()[i-1] as char);
-        }
-      }
-    }
-    draw_map(&map, calculate_destination(&d));
+
+    // let mut map = HashMap::new();
+    // for item in &v {
+    //   for i in 0..=item.len() {
+    //     let each_d = item[0..i].to_string();
+    //     if i < item.len() {
+    //       put_cango_spot(&mut map, calculate_destination(&each_d), item.as_bytes()[i] as char);
+    //     }
+    //     if i > 0 {
+    //       put_camefrom_spot(&mut map, calculate_destination(&each_d), item.as_bytes()[i-1] as char);
+    //     }
+    //   }
+    // }
+    // draw_map(&map, calculate_destination(&d));
     // println!("{:?}", map.keys().map(|which| (*which, other_path(&map, *which, (0,0)).unwrap().1 ) ).collect::<Vec<((isize,isize),isize)>>());
     // draw(&v[0]);
-    println!("biggest astar {}", map.keys().map(|p| other_path(&map, *p, (0,0)).unwrap().1).max().unwrap());
-    println!("astar path {:?}", other_path(&map,  calculate_destination(&v[0]), (0,0)).unwrap().1);
+    println!("biggest astar {}", new_map.keys().map(|p| other_path(&new_map, *p, (0,0)).unwrap().1).max().unwrap());
+    println!("astar path {:?}", other_path(&new_map,  calculate_destination(&v[0]), (0,0)).unwrap().1);
     println!("min to {:?} is {}", calculate_destination(&v[0]), calculate_doors(&v[0]));
 
     // let options = max_expand(&l);
