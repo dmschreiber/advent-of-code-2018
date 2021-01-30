@@ -256,13 +256,25 @@ fn combos(l1 : &Vec<String>, l2 : &Vec<String>) -> Vec<String> {
   return v;
 }
 
-fn find_variations(things : &Vec<Thing>) -> Vec<String> {
+fn compare_directions(exp1 : &String, exp2 : &String) -> u32 {
+  let length = std::cmp::min(exp1.len(),exp2.len());
+  let mut count = 0;
+
+  for i in 0..length {
+    if exp1.as_bytes()[i] == exp2.as_bytes()[i] { count += 1; }
+  }
+  return count;
+}
+
+fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, map : &mut &HashMap<(isize,isize),u8>) -> Vec<String> {
   let mut retval : Vec<String> = vec![];
 
   for (_i,thing) in things.iter().enumerate() {
     // println!("{} of {}", i+1, things.len());
+    let mut in_progress_starting_points = retval.iter().map(|d| calculate_destination(d)).collect::<Vec<(isize,isize)>>();
+    in_progress_starting_points.dedup();
     if thing.children.len() != 0 {
-      let mut candidates = find_variations(&thing.children);
+      let mut candidates = find_variations(&thing.children, &in_progress_starting_points, map);
       if retval.len() > 0 {
         retval = combos(&retval, &candidates);
       } else {
@@ -270,10 +282,10 @@ fn find_variations(things : &Vec<Thing>) -> Vec<String> {
       }
 
     } else if thing.thing1.len() > 0 || thing.thing2.len()> 0 {
-      let option1 = find_variations(&thing.thing1);
+      let option1 = find_variations(&thing.thing1,&in_progress_starting_points, map);
       let mut new_retval = combos(&retval, &option1);
 
-      let option2 = find_variations(&thing.thing2);
+      let option2 = find_variations(&thing.thing2,&in_progress_starting_points, map);
       retval = combos(&retval, &option2);
       retval.append(&mut new_retval);
     } else {
@@ -285,7 +297,7 @@ fn find_variations(things : &Vec<Thing>) -> Vec<String> {
     }
   }
 
-  // println!("pre-reduce {:?}", retval);
+  // println!("pre-reduce {:?}", retval).len();
   let mut map : HashMap<(isize,isize),(usize,String)> = HashMap::new();
   for d in &retval {
     if let Some(existing) = map.get_mut(&calculate_destination(&d)) {
@@ -298,24 +310,23 @@ fn find_variations(things : &Vec<Thing>) -> Vec<String> {
       map.insert(calculate_destination(&d),(d.len(),d.clone()));
     }
   }
-  retval = map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
-  
-  retval.sort_by_key(|k| calculate_doors(k) as isize * -1);
-  // let cap = 1000;
 
-  // println!("found {}", retval.len());
-  // if retval.len() > cap {
-    // return retval[0..cap].to_vec();
-  // } else {
-    return retval;
+  // let original_count = retval.len();
+  // let mut alternatives = vec![];
+  // for which in map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>().iter() {
+  //   let mut candidates = retval.iter()
+  //                 .filter(|d| *d != which && calculate_destination(d)==calculate_destination(&which) && d.len()<600)
+  //                 .map(|s| s.to_string()).collect::<Vec<String>>();
+  //   alternatives.append(&mut candidates);
   // }
-  // if retval.len()> 0 {
-  //   for d in retval[0..std::cmp::min(retval.len(),10)].iter() {
-  //     println!("farthest {:?}:{} (and {} other options)", 
-  //     calculate_destination(d), 
-  //     calculate_doors(d), retval.iter().filter(|which| calculate_destination(which)==calculate_destination(d)).count());
-  //   }
-  // }
+  retval = map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
+  // retval.append(&mut alternatives);
+
+  println!("starting points {:?} and results {}", starting_points, retval.len());
+
+  // println!("reduce {} to {}", original_count, retval.len());
+  retval.sort_by_key(|k| calculate_doors(k) as isize * -1);
+  return retval;
 
 }
 // 1522 is too low
@@ -436,8 +447,11 @@ pub fn solve(file_name : String) -> i64 {
     let d = find_furthest(&tree);
 
     println!("{:?} - {} to {:?}", d, calculate_doors(&d), calculate_destination(&d));
-    let v = find_variations(&tree);
-
+    let mut new_map = HashMap::new();
+    let v = find_variations(&tree, &vec![(0,0)],&mut &new_map);
+    println!("{} variations", v.len());
+    draw_map(&new_map, calculate_destination(&d));
+    
     let mut map = HashMap::new();
     for item in &v {
       for i in 0..=item.len() {
@@ -450,9 +464,8 @@ pub fn solve(file_name : String) -> i64 {
         }
       }
     }
-    println!("{} variations", map.len());
     draw_map(&map, calculate_destination(&d));
-    println!("{:?}", map.keys().map(|which| (*which, other_path(&map, *which, (0,0)).unwrap().1 ) ).collect::<Vec<((isize,isize),isize)>>());
+    // println!("{:?}", map.keys().map(|which| (*which, other_path(&map, *which, (0,0)).unwrap().1 ) ).collect::<Vec<((isize,isize),isize)>>());
     // draw(&v[0]);
     println!("biggest astar {}", map.keys().map(|p| other_path(&map, *p, (0,0)).unwrap().1).max().unwrap());
     println!("astar path {:?}", other_path(&map,  calculate_destination(&v[0]), (0,0)).unwrap().1);
