@@ -166,7 +166,6 @@ fn calculate_doors(direction : &String) -> usize {
 #[derive(Debug,Clone)]
 pub enum Thing {
   expression(String),
-  children(Vec<Thing>),
   or(Vec<Thing>,Vec<Thing>),
 }
 
@@ -177,7 +176,6 @@ pub fn print_things(things : &Vec<Thing>, depth : String) {
 
   for t in things {
     match t {
-      Thing::children(some) => { print_things(some, format!("-{}", depth)); }
       Thing::or(t1,t2) => { print_things(t1, format!(" OR {}", depth)); print_things(t2, format!(" OR {}", depth)); }
       Thing::expression(e) => { println!("{}{} - {}", depth, e, calculate_doors(e)); }
     }
@@ -230,7 +228,6 @@ fn find_furthest(things : &Vec<Thing>) -> String {
 
   for thing in things {
     match thing {
-      Thing::children(some) => { retval = retval + &find_furthest(some); }
       Thing::or(thing1,thing2) => {
         let option1 = find_furthest(thing1);
         let option2 = find_furthest(thing2);
@@ -285,14 +282,14 @@ fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, 
       }
     }
     match thing {
-      Thing::children(some) => {
-        let mut candidates = find_variations(&some, &in_progress_starting_points, map);
-        if retval.len() > 0 {
-          retval = combos(&retval, &candidates);
-        } else {
-          retval.append(&mut candidates);
-        }
-      }  
+      // Thing::children(some) => {
+      //   let mut candidates = find_variations(&some, &in_progress_starting_points, map);
+      //   if retval.len() > 0 {
+      //     retval = combos(&retval, &candidates);
+      //   } else {
+      //     retval.append(&mut candidates);
+      //   }
+      // }  
       Thing::or(thing1,thing2) => {
         let option1 = find_variations(&thing1,&in_progress_starting_points, map);
         let mut new_retval = combos(&retval, &option1);
@@ -460,7 +457,7 @@ pub fn solve(file_name : String) -> i64 {
   for l in lines {
     println!("Working {}", l[0..std::cmp::min(70,l.len())].to_string());
     let tree = strip_outer(&l);
-
+    println!("{:?}",tree);
     // print_things(&tree,"".to_string());
     let d = find_furthest(&tree);
 
