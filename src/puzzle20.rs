@@ -7,6 +7,8 @@ mod tests {
     println!();
     // super::print_things(&super::strip_outer(&"^WSSEESWWWNW(S|NENNEEEENN(ESSSSW(NWSW|SSEN)|WSWWN(E|WWS(E|SS))))$".to_string()), "".to_string());
     // assert!(super::expand_regex(&"SSE(EE|N)".to_string()) == vec!["SSEEE", "SSEN"]);
+    println!("{:?}",super::combos(&vec!["N".to_string(),"S".to_string()],&vec!["W".to_string(),"E".to_string()]));
+    assert!(vec!["NW","NE","SW","SE"]==super::combos(&vec!["N".to_string(),"S".to_string()],&vec!["W".to_string(),"E".to_string()]));
     assert!(18==super::solve("./inputs/puzzle20-test.txt".to_string()));
   }
 
@@ -272,30 +274,28 @@ fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, 
   let mut retval : Vec<String> = vec![];
 
   for (_i,thing) in things.iter().enumerate() {
-    // println!("{} of {}", i+1, things.len());
     let mut in_progress_starting_points = retval.iter().map(|d| calculate_destination(d)).collect::<Vec<(isize,isize)>>();
     in_progress_starting_points.dedup();
-    for s in starting_points {
-      for ipsp in in_progress_starting_points.iter_mut() {
-        ipsp.0 = ipsp.0 + s.0;
-        ipsp.1 = ipsp.1 + s.1;
+    if in_progress_starting_points.len() == 0 { 
+      in_progress_starting_points = starting_points.clone(); 
+    } else {
+      for s in starting_points {
+        for ipsp in in_progress_starting_points.iter_mut() {
+          ipsp.0 = ipsp.0 + s.0;
+          ipsp.1 = ipsp.1 + s.1;
+        }
       }
     }
+    println!("{} {:?}", _i+1, in_progress_starting_points);
+    if in_progress_starting_points.len() > 1 { panic!("multiple in progress"); }
     match thing {
-      // Thing::children(some) => {
-      //   let mut candidates = find_variations(&some, &in_progress_starting_points, map);
-      //   if retval.len() > 0 {
-      //     retval = combos(&retval, &candidates);
-      //   } else {
-      //     retval.append(&mut candidates);
-      //   }
-      // }  
       Thing::or(thing1,thing2) => {
         let option1 = find_variations(&thing1,&in_progress_starting_points, map);
         let mut new_retval = combos(&retval, &option1);
   
         let option2 = find_variations(&thing2,&in_progress_starting_points, map);
         retval = combos(&retval, &option2);
+
         retval.append(&mut new_retval);  
       }
       Thing::expression(e) => {
@@ -307,12 +307,25 @@ fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, 
       }
     }
 
+    for s in starting_points {
+      // println!("starting at {:?}", s);
+      for item in &retval {    
+        for i in 0..=item.len() {
+          let each_d = item[0..i].to_string();
+          if i < item.len() {
+            put_cango_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i] as char);
+          }
+          if i > 0 {
+            put_camefrom_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i-1] as char);
+          }
+        }
+      }
+    }  
   }
 
   let mut reduce_map : HashMap<(isize,isize),(usize,String)> = HashMap::new();
   for s in starting_points {
     // println!("starting at {:?}", s);
-    if *s == (-8,3) { println!("{:?}", things); }
     for item in &retval {
       // println!("starting at {:?} go {}", s, item);
       if let Some(existing) = reduce_map.get_mut(&calculate_relative_destination(&item,*s)) {
@@ -325,22 +338,25 @@ fn find_variations(things : &Vec<Thing>, starting_points : &Vec<(isize,isize)>, 
         reduce_map.insert(calculate_relative_destination(&item,*s),(item.len(),item.clone()));
       }
   
-      for i in 0..=item.len() {
-        let each_d = item[0..i].to_string();
-        if i < item.len() {
-          put_cango_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i] as char);
-        }
-        if i > 0 {
-          put_camefrom_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i-1] as char);
-        }
-      }
+      // for i in 0..=item.len() {
+      //   let each_d = item[0..i].to_string();
+      //   if i < item.len() {
+      //     put_cango_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i] as char);
+      //   }
+      //   if i > 0 {
+      //     put_camefrom_spot(map, calculate_relative_destination(&each_d, *s), item.as_bytes()[i-1] as char);
+      //   }
+      // }
     }
   }
 
-  retval = reduce_map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
+  // retval = reduce_map.values().map(|(_d,s)| s.to_string()).collect::<Vec<String>>();
 
-  // println!("reduce {} to {}", original_count, retval.len());
   retval.sort_by_key(|k| calculate_doors(k) as isize * -1);
+  if retval.len() > 50 {
+    // draw_map(&map,(0,0));
+  }
+  println!("returning {}", retval.len());
   return retval;
 
 }
