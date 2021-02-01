@@ -19,8 +19,8 @@ use regex::Regex;
 use crate::puzzle16;
 
 lazy_static! {
-  static ref IP_REGEX: Regex = Regex::new(r"^#ip ([0-9+]+)$").unwrap();
-  static ref OPCODE_REGEX: Regex = Regex::new(r"^([a-z]+) ([0-9+]+) ([0-9+]+) ([0-9+]+)$").unwrap();
+  pub static ref IP_REGEX: Regex = Regex::new(r"^#ip ([0-9+]+)$").unwrap();
+  pub static ref OPCODE_REGEX: Regex = Regex::new(r"^([a-z]+) ([0-9+]+) ([0-9+]+) ([0-9+]+)$").unwrap();
 }
 
 pub fn run (opcodes : &Vec<Vec<usize>>, initial_state : Vec<usize>, ip_register : usize) -> Vec<usize> {
