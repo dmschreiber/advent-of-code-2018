@@ -34,12 +34,12 @@ pub fn run (opcodes : &Vec<Vec<usize>>, initial_state : Vec<usize>, ip_register 
     ip = ip + 1;
     state[ip_register] = ip;
 
-    let key = format!("{:?}", state);
-    if history.contains(&key) {
-      panic!("infinite loop");
-    } else {
-      if ip == 28 {
-        println!("{}", key);
+    if ip == 28 {
+      let key = format!("{:?}", state[1]);
+      if history.contains(&key) {
+        panic!("infinite loop {}", history.last().unwrap());
+      } else {
+          println!("{}", history.len());
       }
       history.push(key);
     }
@@ -98,10 +98,10 @@ pub fn solve(file_name : String) -> i64 {
     }
 
     if history.contains(&r1) {
-      println!("first one was {}, last one was {}", history.first().unwrap(), history.last().unwrap());      
+      println!("first one was {}, last one was {} (total {})", history.first().unwrap(), history.last().unwrap(), history.len());      
       break;
     } else {
-      history.push(r1); 
+      history.push(r1);
     }
   }
     // rewritten above ^^
