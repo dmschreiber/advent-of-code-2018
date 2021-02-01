@@ -22,65 +22,13 @@ use std::convert::TryInto;
 // use std::time::Instant;
 use regex::Regex;
 use std::collections::HashMap;
+use colored::*;
 
 lazy_static! {
   static ref INNER_REGEX: Regex = Regex::new(r"^(.*)\(([^\(\)]+)\)(.*)$").unwrap();
 }
 
 
-fn expand_regex(expression : &String) -> Vec<String> {
-  let mut v = vec![];
-
-  if let Some(inner) = INNER_REGEX.captures(expression) {
-    for o in inner[2].split("|") {
-      if o.len() == inner[2].split("|").map(|s| s.len()).max().unwrap() {
-        v.push(format!("{}{}{}", &inner[1], o, &inner[3]));
-      }
-    }
-  } else {
-    v.push(expression.clone());
-  }
-
-  return v;
-}
-
-fn expansion_remains(v : &Vec<String>) -> bool {
-  for item in v {
-    if item.contains("|") {
-      return true;
-    }
-  }
-  return false;
-}
-
-pub fn max_expand(expression : &String) -> Vec<String> {
-  let mut start = vec![expression.clone()];
-  
-  loop {
-    let mut result = vec![];
-    for item in &start {
-
-      if item.contains("|") {
-        let mut expanded = expand_regex(&item);
-        result.append(&mut expanded);
-      } else {
-        result.push(item.to_string());
-      }
-      // println!("{:?}", timer.elapsed());
-    }
-
-    result.sort();
-    result.dedup();
-    
-    start = result;
-    if !expansion_remains(&start) {
-      break;
-    }
-
-  }
-
-  return start;
-}
 
 #[allow(dead_code)]
 fn draw(direction : &String) {
@@ -116,17 +64,6 @@ fn draw(direction : &String) {
   }
 }
 
-// fn calculate_relative_destination(direction : &String, start : (isize,isize)) -> (isize,isize) {
-//   let mut p = start;
-
-//   for b in direction.as_bytes() {
-//     if *b == b'N' { p.1 = p.1 + 1; }
-//     if *b == b'S' { p.1 = p.1 - 1;  }
-//     if *b == b'E' { p.0 = p.0 + 1;  }
-//     if *b == b'W' { p.0 = p.0 - 1;  }
-//   }
-//   return p;
-// }
 fn calculate_destination(direction : &String) -> (isize,isize) {
   let mut p = (0,0);
 
@@ -256,29 +193,6 @@ fn find_furthest(things : &Vec<Thing>) -> String {
   return retval;
 }
 
-// fn combos(l1 : &Vec<String>, l2 : &Vec<String>) -> Vec<String> {
-//   let mut v : Vec<String> = vec![];
-
-//   if l1.len() == 0 { return l2.clone(); }
-//   if l2.len() == 0 { return l1.clone(); }
-
-//   for i in l1 {
-//     for j in l2 {
-//       v.push(i.clone() + j);
-//     }
-//   }
-//   return v;
-// }
-
-// fn compare_directions(exp1 : &String, exp2 : &String) -> u32 {
-//   let length = std::cmp::min(exp1.len(),exp2.len());
-//   let mut count = 0;
-
-//   for i in 0..length {
-//     if exp1.as_bytes()[i] == exp2.as_bytes()[i] { count += 1; }
-//   }
-//   return count;
-// }
 
 fn find_variations(things : &Vec<Thing>, starting_point : (isize,isize), map : &mut HashMap<(isize,isize),u8>) -> (isize,isize) {
   let mut current_pos = starting_point;
@@ -326,7 +240,7 @@ fn find_variations(things : &Vec<Thing>, starting_point : (isize,isize), map : &
 // Smallest to (17, -47) is 4142 (too high)
 
 #[allow(dead_code)]
-fn draw_map(map : &HashMap<(isize,isize),u8>, p : (isize,isize)) {
+fn draw_map(map : &HashMap<(isize,isize),u8>, p : Vec<(isize,isize)>) {
   let min_x : isize = map.keys().map(|(x,_y)| *x).min().unwrap();
   let max_x : isize = map.keys().map(|(x,_y)| *x).max().unwrap();
   let min_y : isize = map.keys().map(|(_x,y)| *y).min().unwrap();
@@ -340,23 +254,37 @@ fn draw_map(map : &HashMap<(isize,isize),u8>, p : (isize,isize)) {
       bottom = bottom + "##";
       if let Some(c) = map.get(&(x,y)) {
         if *c & 0x01 == 0x01 {
-          line1 = line1 + "#-";
+          if p.contains(&(x,y)) {
+            line1 = line1 + &format!("#{}", "-".to_string().red());
+          } else {
+            line1 = line1 + "#-";
+          }
         } else {
           line1 = line1 + "##";
         }
 
         if *c & 0x08 == 0x08 {
-          line2 = line2 + "|";
+          if p.contains(&(x,y)) {
+            line2 = line2 + &format!("{}", "|".to_string().red());
+          } else {
+            line2 = line2 + "|";
+          }
         } else {
           line2 = line2 + "#";
         }
 
-        if x == 0 && y == 0 {
-          line2 = line2 + "X";
-        } else if x == p.0 && y == p.1 {
-          line2 = line2 + "O";
+        let spot;
+        if (x,y) == (0,0) {
+          spot = "X";
+        } else if p.contains(&(x,y)){
+          spot = "O";
         } else {
-          line2 = line2 + ".";
+          spot = ".";
+        }
+        if p.contains(&(x,y)) {
+          line2 = line2 + &format!("{}",spot.to_string().red());
+        } else {
+         line2 = line2 + spot;
         }
 
       } else {
@@ -442,10 +370,10 @@ pub fn solve(file_name : String) -> i64 {
   let mut new_map = HashMap::new();
   find_variations(&tree, (0,0),&mut new_map);
 
-  // draw_map(&new_map, calculate_destination(&d));
-  let farthest_room = other_path(&new_map,  calculate_destination(&d), (0,0)).unwrap().1;
-  println!("longest shortest path {:?}", farthest_room);
+  let farthest_room = other_path(&new_map,  calculate_destination(&d), (0,0)).unwrap();
+  draw_map(&new_map, farthest_room.0);
+  println!("longest shortest path {:?}", farthest_room.1);
   println!("{} rooms are >=1000 doors away", new_map.keys().map(|p| other_path(&new_map, *p, (0,0))).filter(|p| *p!=None ).map(|p| p.unwrap().1).filter(|p| *p >= 1000).count());
 
-  return farthest_room.try_into().unwrap();
+  return farthest_room.1.try_into().unwrap();
 }
