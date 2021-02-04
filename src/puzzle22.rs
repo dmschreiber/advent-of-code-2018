@@ -21,7 +21,7 @@ use std::convert::TryInto;
 use std::collections::HashMap;
 pub extern crate pathfinding;
 use pathfinding::prelude::dijkstra;
-use pathfinding::prelude::astar;
+//use pathfinding::prelude::astar;
 use colored::*;
 
 
