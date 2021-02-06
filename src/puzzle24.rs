@@ -19,14 +19,14 @@ mod tests {
 
   #[test]
   pub fn puzzle24_prod() {
-    assert!(common::format_binary(10)=="1010");
-    super::solve("./inputs/puzzle24.txt".to_string());
+    assert!(26937==super::solve("./inputs/puzzle24.txt".to_string()));
   }
 }
 
 use crate::common;
 use std::collections::HashMap;
 use regex::Regex;
+use std::cmp::Reverse;
 
 lazy_static! {
   pub static ref GROUP_REGEX: Regex = Regex::new(r"^([0-9+]+) units each with ([0-9+]+) hit points \((.+)\) with an attack that does ([0-9+]+) ([a-z]+) damage at initiative ([0-9+]+)$").unwrap();
@@ -37,6 +37,7 @@ lazy_static! {
 pub enum Army {
   ImmuneSystem,
   Infection,
+  None,
 }
 
 #[derive(Debug,PartialEq,Clone)]
@@ -92,7 +93,7 @@ fn extract_group(expression : &String, army : &Army, index : u32) -> Group {
     let immune = vec![];
     let weak = vec![];
 
-    let attack_type = inner[3].to_string();
+    let attack_type = inner[4].to_string();
     let attack_strength = inner[3].parse::<u32>().unwrap();
     let initiative = inner[5].parse::<u32>().unwrap();
     return Group{ index : index, army: army.clone(), units : units, hit_points : hp, immune : immune, weak : weak, attack_type : attack_type, attack_strength : attack_strength, initiative : initiative };
@@ -101,49 +102,94 @@ fn extract_group(expression : &String, army : &Army, index : u32) -> Group {
   panic!("invalid format {}", expression);
 }
 
-pub fn fight(groups : &Vec<Group>, targeting : &HashMap<(Army,u32),Option<(Army,u32)>>) -> Vec<Group> {
-  let mut new_groups : Vec<Group> = vec![];
-  let mut killed_groups : Vec<(Army,u32)> = vec![];
+pub fn fight(groups : &mut Vec<Group>, targeting : &HashMap<(Army,u32),Option<(Army,u32)>>) -> bool {
+  // let mut new_groups : Vec<Group> = vec![];
+  // let mut killed_groups : Vec<(Army,u32)> = vec![];
+  let group_count = groups.len();
+  let mut damage_done = 0;
 
+  for i in 0..group_count {
+    let (g_army, g_index) = (groups.get(i).unwrap().army,groups.get(i).unwrap().index);
+    if let Some(target) = targeting.get(&(g_army,g_index)) {
+      if let Some((target_army,target_index)) = target {
+        let target_pos = groups.iter().position(|which|  which.army == *target_army && which.index == *target_index).unwrap();
+        // let target_group = &groups.iter().filter(|which| which.army == *target_army && which.index == *target_index).map(|which| which.clone()).collect::<Vec<Group>>()[0];
+        let g = groups.get(i).unwrap().clone();
+        let mut target_group = groups.get_mut(target_pos).unwrap();
+
+        if g.units == 0 { continue; }
+        if g.units > 0 {
+          let damage = g.attack_power(&target_group);
+
+          if damage < target_group.units * target_group.hit_points {
+            damage_done = damage_done + damage / target_group.hit_points ;            
+            target_group.units = target_group.units - ( damage / target_group.hit_points );
+            // println!("{:?} group {} attacks defending group {}, killing {} units", g.army, g.index, target_group.index, damage / target_group.hit_points);
+          } else {
+            // println!("{:?} group {} attacks defending group {}, killing {} units", g.army, g.index, target_group.index, target_group.units);
+            damage_done = damage_done + target_group.units;
+            target_group.units = 0;
+          }
+        }
+      }
+    }
+  } 
+  return damage_done > 0;
+  
+}
+fn display_standing(groups : &Vec<Group>) {
+  println!("Current standing");
   for g in groups {
-    let target = targeting.get(&(g.army,g.index)).unwrap();
-    if let Some((target_army,target_index)) = target {
-      let target_group = &groups.iter().filter(|which| which.army == *target_army && which.index == *target_index).map(|which| which.clone()).collect::<Vec<Group>>()[0];
+    if g.units > 0 {
+      println!("{:?} group {} contains {} units ({} effective power)", g.army, g.index, g.units, g.effective_power());
+    }
+  }
+}
 
-      if killed_groups.iter().filter(|which| **which == (g.army,g.index) ).count() == 0 {
-        let damage;
-        if new_groups.iter().filter(|which| which.army == g.army && which.index == g.index).count() > 0 {
-          damage = new_groups.iter().filter(|which| which.army == g.army && which.index == g.index).map(|which| which.attack_power(target_group)).sum();
-        } else {
-          damage = g.attack_power(target_group);
+pub fn simulate(starting_groups : &Vec<Group>, boost : u32) -> (Army, u32) {
+  let mut groups = starting_groups.clone();
+  for g in groups.iter_mut() {
+    if g.army == Army::ImmuneSystem { g.attack_strength += boost; }
+  }
+
+  loop {
+    // println!("Tageting");
+    let mut targeting : HashMap<(Army,u32),Option<(Army,u32)>> = HashMap::new();
+
+    groups.sort_by_key(|k| Reverse((k.effective_power(), k.initiative)) );
+    for g in &groups {
+      let mut max_damage = 0;
+
+      let mut target = None;
+      if g.units > 0 {
+        for other_g in &groups {
+          if other_g.units > 0 && g.army != other_g.army && targeting.values().filter(|which| **which == Some((other_g.army,other_g.index)) ).count() == 0 {
+
+            if g.attack_power(&other_g) > max_damage {
+              max_damage = g.attack_power(&other_g);
+              target = Some((other_g.army,other_g.index));
+            }
+            // println!("{:?} group {} would deal defending group {} {} damage", g.army, g.index, other_g.index, g.attack_power(&other_g));
+          }          
         }
 
-        // println!("Damage {}, target units {}, target hit points {}", damage, target_group.units, target_group.hit_points);
-        if damage < (target_group.units * target_group.hit_points) {
-          println!("{:?} group {} attacks defending group {}, killing {} units", g.army, g.index, target_group.index, damage / target_group.hit_points);
-          let remaining_units = target_group.units - ( damage / target_group.hit_points );
-          let mut new_group = target_group.clone();
-          new_group.units = remaining_units;
-          new_groups.push(new_group);
-        } else {
-          println!("{:?} group {} attacks defending group {}, killing the group ({} units)", g.army, g.index, target_group.index, damage / target_group.hit_points);
-          killed_groups.push((target_group.army,target_group.index));
-        }
-      } else { // the group that targeted me was killed first
-        println!("The group that targeted {:?} group {} me was killed first", target_group.army, target_group.index);
-        new_groups.push(target_group.clone());
-
+        targeting.insert((g.army,g.index),target);
       }
     }
 
-    // if the group was not targeted
-    if targeting.values().filter(|target| **target == Some((g.army,g.index)) ).count() == 0 && 
-        killed_groups.iter().filter(|which| **which == (g.army,g.index) ).count() == 0 {
-      new_groups.push(g.clone());
+    groups.sort_by_key(|k| Reverse(k.initiative ) );
+    if !fight(&mut groups,&targeting) {
+      // println!("Tie");
+      return (Army::None,0);
+    }
+
+    if groups.iter().filter(|g| g.army == Army::Infection && g.units > 0).count() == 0 {
+      return (Army::ImmuneSystem,groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units).sum::<u32>());
+    }
+    else if groups.iter().filter(|g| g.army == Army::ImmuneSystem && g.units > 0).count() == 0 {
+      return (Army::Infection,groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units).sum::<u32>());
     }
   }
-  
-  return new_groups;
 }
 
 pub fn solve(file_name : String) -> i64 {
@@ -165,67 +211,29 @@ pub fn solve(file_name : String) -> i64 {
       group_index = group_index + 1;
     }
   }
+  
+  // Part 1
+  let (_winner,part1_units) = simulate(&groups, 0);
+  println!("Day 24 part 1 {:?} wins with {} units", _winner, part1_units);
 
+  // Part 2
+  let mut hi_boost = 1000000;
+  let mut lo_boost = 0;
 
-  loop {
-    println!("Current standing");
-    for g in &groups {
-      println!("{:?} group {} contains {} units ({} effective power)", g.army, g.index, g.units, g.effective_power());
-    }
+  while hi_boost - lo_boost > 1 {
+    let mid_boost = (hi_boost+lo_boost)/2;
 
-    println!("Tageting");
-    let mut targeting : HashMap<(Army,u32),Option<(Army,u32)>> = HashMap::new();
-    // targeting in decreasing order of effective power; tie breaker highest initiative
-    groups.sort_by_key(|k| (k.effective_power() as i64 * 100 + k.initiative as i64) * -1);
-    for g in &groups {
-      let mut max_damage = 0;
-      let mut max_effective_power = 0;
-      let mut max_initiative = 0;
+    let (winner,units) = simulate(&groups, mid_boost);
 
-      let mut target = None;
-      for other_g in &groups {
-        if g.army != other_g.army && targeting.values().filter(|which| **which == Some((other_g.army,other_g.index)) ).count() == 0 {
-          // println!("{:?} aattacks {:?}", g, other_g);
-          if g.attack_power(&other_g) > max_damage {
-            max_damage = g.attack_power(&other_g);
-            target = Some((other_g.army,other_g.index));
-            max_effective_power = other_g.effective_power();
-            max_initiative = other_g.initiative;
-          } else if g.attack_power(&other_g) == max_damage {
-            if other_g.effective_power() > max_effective_power {
-              max_effective_power = other_g.effective_power();
-              target = Some((other_g.army,other_g.index));
-              max_initiative = other_g.initiative;
-            } else if other_g.effective_power() == max_effective_power {
-              if other_g.initiative > max_initiative {
-                max_initiative = other_g.initiative;
-                target = Some((other_g.army,other_g.index));
-              }
-            }
-          }
-          println!("{:?} group {} would deal defending group {} {} damage", g.army, g.index, other_g.index, g.attack_power(&other_g));
-        }
-      }
-
-      targeting.insert((g.army,g.index),target);
-    }
-
-    println!("Fighting");
-    // println!("{:?}", targeting);
-
-    // println!();
-    groups.sort_by_key(|k| k.initiative as i64 * -1);
-    groups = fight(&groups,&targeting);
-
-    if groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).count() == 0 {
-      println!("Immune System Won, Returning {}", groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).sum::<i64>());
-      return groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).sum::<i64>();
-    }
-    else if groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).count() == 0 {
-      println!("Infection Won, Returning {}", groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).sum::<i64>());
-      return groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).sum::<i64>();
+    if winner == Army::ImmuneSystem {
+      hi_boost = mid_boost;
+    } else {
+      lo_boost = mid_boost;
     }
   }
+  println!("Final boost - {}", hi_boost);
+  let (winner,units) = simulate(&groups, hi_boost);
+  println!("Winner {:?} with {} units", winner, units);
 
-  // 25872 too low
+  return part1_units as i64;
 }
