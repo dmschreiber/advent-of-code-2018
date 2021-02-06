@@ -238,7 +238,7 @@ pub fn solve(file_name : String) -> i64 {
     spread_out(&mut map);
     settle_out(&mut map);
     fall(&mut map);
-    print_map(&map);
+    // print_map(&map);
 
     if water_count != (map.values().filter(|v| **v=='|').count(), map.values().filter(|v| **v=='~').count()) {
       water_count = (map.values().filter(|v| **v=='|').count(), map.values().filter(|v| **v=='~').count());
