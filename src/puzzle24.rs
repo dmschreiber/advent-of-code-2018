@@ -137,6 +137,8 @@ pub fn fight(groups : &mut Vec<Group>, targeting : &HashMap<(Army,u32),Option<(A
   return damage_done > 0;
   
 }
+
+#[allow(dead_code)]
 fn display_standing(groups : &Vec<Group>) {
   println!("Current standing");
   for g in groups {
@@ -223,7 +225,7 @@ pub fn solve(file_name : String) -> i64 {
   while hi_boost - lo_boost > 1 {
     let mid_boost = (hi_boost+lo_boost)/2;
 
-    let (winner,units) = simulate(&groups, mid_boost);
+    let (winner,_units) = simulate(&groups, mid_boost);
 
     if winner == Army::ImmuneSystem {
       hi_boost = mid_boost;
