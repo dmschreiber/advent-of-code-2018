@@ -127,7 +127,7 @@ pub fn fight(groups : &Vec<Group>, targeting : &HashMap<(Army,u32),Option<(Army,
           new_groups.push(new_group);
         } else {
           println!("{:?} group {} attacks defending group {}, killing the group ({} units)", g.army, g.index, target_group.index, damage / target_group.hit_points);
-          // killed_groups.push((target_group.army,target_group.index));
+          killed_groups.push((target_group.army,target_group.index));
         }
       } else { // the group that targeted me was killed first
         println!("The group that targeted {:?} group {} me was killed first", target_group.army, target_group.index);
@@ -137,7 +137,8 @@ pub fn fight(groups : &Vec<Group>, targeting : &HashMap<(Army,u32),Option<(Army,
     }
 
     // if the group was not targeted
-    if targeting.values().filter(|target| **target == Some((g.army,g.index)) ).count() == 0 {
+    if targeting.values().filter(|target| **target == Some((g.army,g.index)) ).count() == 0 && 
+        killed_groups.iter().filter(|which| **which == (g.army,g.index) ).count() == 0 {
       new_groups.push(g.clone());
     }
   }
@@ -205,6 +206,7 @@ pub fn solve(file_name : String) -> i64 {
           println!("{:?} group {} would deal defending group {} {} damage", g.army, g.index, other_g.index, g.attack_power(&other_g));
         }
       }
+
       targeting.insert((g.army,g.index),target);
     }
 
@@ -215,11 +217,11 @@ pub fn solve(file_name : String) -> i64 {
     groups.sort_by_key(|k| k.initiative as i64 * -1);
     groups = fight(&groups,&targeting);
 
-    if groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).sum::<i64>() == 0 {
+    if groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).count() == 0 {
       println!("Immune System Won, Returning {}", groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).sum::<i64>());
       return groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).sum::<i64>();
     }
-    else if groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).sum::<i64>() == 0 {
+    else if groups.iter().filter(|g| g.army == Army::ImmuneSystem).map(|which| which.units as i64).count() == 0 {
       println!("Infection Won, Returning {}", groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).sum::<i64>());
       return groups.iter().filter(|g| g.army == Army::Infection).map(|which| which.units as i64).sum::<i64>();
     }
