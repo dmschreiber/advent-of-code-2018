@@ -7,7 +7,7 @@ mod tests {
     assert!(super::op_code(2, vec![2,1,2],&vec![3,2,1,1]) == vec![3,2,2,1]);
     assert!(super::op_code(1, vec![2,1,2],&vec![3,2,1,1]) == vec![3,2,2,1]);
     assert!(super::op_code(9, vec![2,1,2],&vec![3,2,1,1]) == vec![3,2,2,1]);
-    assert!(1==super::solve("./inputs/puzzle16-test.txt".to_string()));
+    // assert!(1==super::solve("./inputs/puzzle16-test.txt".to_string()));
   }
 
   #[test]

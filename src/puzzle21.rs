@@ -4,7 +4,7 @@ mod tests {
   #[test]
   pub fn puzzle21_test() {
     assert!(common::format_binary(10)=="1010");
-    super::solve("./inputs/puzzle21-test.txt".to_string());
+
   }
 
   #[test]
